@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -193,3 +194,200 @@
   </script>
 </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug - Teste de localStorage</title>
+  <style>
+    body {
+      font-family: 'Montserrat', Arial, sans-serif;
+      background: #1e293b;
+      color: #fff;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #60a5fa;
+      border-bottom: 2px solid #60a5fa;
+      padding-bottom: 10px;
+    }
+    .section {
+      background: #334155;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 15px 0;
+      border-left: 4px solid #60a5fa;
+    }
+    button {
+      background: #60a5fa;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #3b82f6;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      background: #10b981;
+      color: white;
+    }
+    .error {
+      background: #ef4444;
+      color: white;
+    }
+    .info {
+      background: #0284c7;
+      color: white;
+    }
+    #data-output {
+      background: #1e293b;
+      border: 1px solid #475569;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 Debug - Teste de localStorage</h1>
+  
+  <div class="section">
+    <h2>1. Teste de localStorage</h2>
+    <button onclick="testLocalStorage()">Testar localStorage</button>
+    <button onclick="clearStorage()">Limpar localStorage</button>
+    <div id="ls-status" class="status"></div>
+  </div>
+  
+  <div class="section">
+    <h2>2. Adicionar Cliente de Teste</h2>
+    <input type="text" id="client-name-input" placeholder="Nome do cliente" value="Cliente Teste">
+    <button onclick="addTestClient()">Adicionar Cliente</button>
+    <div id="add-status" class="status"></div>
+  </div>
+  
+  <div class="section">
+    <h2>3. Visualizar Dados Salvos</h2>
+    <button onclick="viewData()">Ver dados em localStorage</button>
+    <button onclick="viewParsed()">Ver dados parseados</button>
+    <div id="data-output"></div>
+  </div>
+  
+  <div class="section">
+    <h2>4. SimulaçãoCompleta</h2>
+    <p>Siga os passos:</p>
+    <ol>
+      <li>Clique em "Limpar localStorage"</li>
+      <li>Clique em "Adicionar Cliente"</li>
+      <li>Clique em "Ver dados parseados"</li>
+      <li>Pressione F5 e repita o passo 3</li>
+    </ol>
+    <p>Se os dados continuarem após F5, a persistência está funcionando! ✅</p>
+  </div>
+
+  <script>
+    function testLocalStorage() {
+      try {
+        localStorage.setItem('test', 'funciona');
+        const value = localStorage.getItem('test');
+        localStorage.removeItem('test');
+        
+        const output = document.getElementById('ls-status');
+        if (value === 'funciona') {
+          output.className = 'status success';
+          output.textContent = '✅ localStorage está funcionando perfeitamente!';
+        } else {
+          output.className = 'status error';
+          output.textContent = '❌ localStorage não está guardando dados corretamente!';
+        }
+      } catch (e) {
+        document.getElementById('ls-status').className = 'status error';
+        document.getElementById('ls-status').textContent = '❌ Erro: ' + e.message;
+      }
+    }
+
+    function clearStorage() {
+      localStorage.removeItem('jmar_data');
+      document.getElementById('add-status').className = 'status success';
+      document.getElementById('add-status').textContent = '✅ localStorage "jmar_data" foi limpo!';
+    }
+
+    function addTestClient() {
+      try {
+        const name = document.getElementById('client-name-input').value;
+        const data = JSON.parse(localStorage.getItem('jmar_data') || '[]');
+        
+        data.push({
+          id: Date.now().toString(),
+          type: 'client',
+          client_name: name,
+          created_at: new Date().toISOString()
+        });
+        
+        localStorage.setItem('jmar_data', JSON.stringify(data));
+        
+        document.getElementById('add-status').className = 'status success';
+        document.getElementById('add-status').textContent = `✅ Cliente "${name}" adicionado!\nTotal de registros: ${data.length}`;
+      } catch (e) {
+        document.getElementById('add-status').className = 'status error';
+        document.getElementById('add-status').textContent = '❌ Erro ao adicionar: ' + e.message;
+      }
+    }
+
+    function viewData() {
+      const data = localStorage.getItem('jmar_data');
+      const output = document.getElementById('data-output');
+      
+      if (!data) {
+        output.className = 'status error';
+        output.textContent = '❌ Nenhum dado encontrado em localStorage';
+      } else {
+        output.className = 'status info';
+        output.textContent = 'Dados brutos em localStorage:\n\n' + data;
+      }
+    }
+
+    function viewParsed() {
+      try {
+        const data = JSON.parse(localStorage.getItem('jmar_data') || '[]');
+        const output = document.getElementById('data-output');
+        
+        if (data.length === 0) {
+          output.className = 'status error';
+          output.textContent = '❌ Nenhum dado encontrado em localStorage';
+        } else {
+          output.className = 'status success';
+          output.textContent = `✅ ${data.length} registro(s) encontrado(s):\n\n${JSON.stringify(data, null, 2)}`;
+        }
+      } catch (e) {
+        document.getElementById('data-output').className = 'status error';
+        document.getElementById('data-output').textContent = '❌ Erro ao parsear JSON: ' + e.message;
+      }
+    }
+
+    // Teste automático ao carregar
+    window.addEventListener('load', () => {
+      console.log('📄 Página de debug carregada');
+      testLocalStorage();
+    });
+  </script>
+</body>
+</html>
+>>>>>>> a05a63a082db63406efee0ee6156cb3d9b9d2766
