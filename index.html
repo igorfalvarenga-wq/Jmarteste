@@ -1916,14 +1916,32 @@
         const result = await window.serverSdk.init(dataHandler);
         console.log('✅ serverSdk init resultado:', result);
         console.log('📊 Dados carregados:', window.serverSdk.storage);
+        // Sincronizar allData com os dados do servidor
+        allData = window.serverSdk.storage;
+        currentRecordCount = allData.length;
+        // Renderizar dados carregados
+        if (allData.length > 0) {
+          renderClients(allData);
+          renderNotices(allData);
+        }
+        console.log('✅ allData sincronizado:', allData.length, 'registros');
         if (!result.isOk) showToast('Erro ao conectar ao servidor.', 'error');
       } 
       // Fallback para dataSdk (localStorage)
       else if (getActiveSDK()) {
-        console.log('📚 serverSdk não encontrado, usando dataSdk...');
+        console.log('📚 Usando SDK local...');
         const result = await getActiveSDK().init(dataHandler);
-        console.log('✅ dataSdk init resultado:', result);
+        console.log('✅ SDK init resultado:', result);
         console.log('📊 Dados carregados:', getActiveSDK().storage);
+        // Sincronizar allData com os dados locais
+        allData = getActiveSDK().storage;
+        currentRecordCount = allData.length;
+        // Renderizar dados carregados
+        if (allData.length > 0) {
+          renderClients(allData);
+          renderNotices(allData);
+        }
+        console.log('✅ allData sincronizado:', allData.length, 'registros');
         if (!result.isOk) showToast('Erro ao conectar.', 'error');
       } else {
         console.error('❌ Nenhum SDK encontrado!');
