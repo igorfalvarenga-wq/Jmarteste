@@ -9,9 +9,16 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script>
-    // TODO: cole aqui seu firebaseConfig obtido no Firebase Console
-    // Exemplo:
-    // const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "your-bucket.appspot.com", messagingSenderId: "...", appId: "..." };
+    // Firebase config fornecido pelo usuário (adaptado para compat)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYoRK-wS2SBUDDRlRQMrGT6lNEIdGfR3c",
+      authDomain: "basejmarteste.firebaseapp.com",
+      databaseURL: "https://basejmarteste-default-rtdb.firebaseio.com",
+      projectId: "basejmarteste",
+      storageBucket: "basejmarteste.firebasestorage.app",
+      messagingSenderId: "1014372056207",
+      appId: "1:1014372056207:web:b6f75a442ca71a674204fa"
+    };
     try {
       if (typeof firebaseConfig !== 'undefined' && firebaseConfig && firebaseConfig.storageBucket) {
         firebase.initializeApp(firebaseConfig);
