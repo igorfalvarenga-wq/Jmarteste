@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnóstico - JMAR</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', Arial, sans-serif;
+      background: #1e293b;
+      color: #fff;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #60a5fa; margin-bottom: 20px; border-bottom: 2px solid #60a5fa; padding-bottom: 10px; }
+    h2 { color: #60a5fa; margin-top: 20px; margin-bottom: 10px; font-size: 18px; }
+    .section {
+      background: #334155;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 15px 0;
+      border-left: 4px solid #60a5fa;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success { background: #10b981; }
+    .error { background: #ef4444; }
+    .warning { background: #f59e0b; }
+    .info { background: #0284c7; }
+    button {
+      background: #60a5fa;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover { background: #3b82f6; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .alert {
+      background: #1f2937;
+      border: 1px solid #475569;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Diagnóstico - JMAR</h1>
+    
+    <div class="section">
+      <h2>1️⃣ Verificação de Arquivos e SDKs</h2>
+      <button onclick="checkSDKs()">Verificar SDKs</button>
+      <div id="sdk-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h2>2️⃣ Teste de localStorage</h2>
+      <div class="grid">
+        <button onclick="testStorage()">Testar localStorage</button>
+        <button onclick="viewStorage()">Ver dados salvos</button>
+        <button onclick="clearStorage()">Limpar tudo</button>
+        <button onclick="addTestData()">Adicionar teste</button>
+      </div>
+      <div id="storage-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h2>3️⃣ Teste Completo do Sistema</h2>
+      <button onclick="runFullTest()">Executar teste completo</button>
+      <div id="full-test-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h2>4️⃣ Informações do Sistema</h2>
+      <button onclick="showSystemInfo()">Mostrar info do sistema</button>
+      <div id="system-info" class="status"></div>
+    </div>
+
+    <div class="alert">
+      <strong>📝 Instruções:</strong><br>
+      1. Abra F12 (Developer Tools) e vá em Console<br>
+      2. Execute os testes acima<br>
+      3. Copie e cole os resultados dos erros encontrados<br>
+      4. Compartilhe comigo os erros da Console (F12)
+    </div>
+  </div>
+
+  <script>
+    // Suprime erros e exibe no próprio HTML
+    const originalError = console.error;
+    const errorLog = [];
+    
+    window.addEventListener('error', (event) => {
+      errorLog.push(`❌ ERRO: ${event.message}\n📁 Arquivo: ${event.filename}\n🔢 Linha: ${event.lineno}`);
+    });
+
+    function log(elementId, message, type = 'info') {
+      const el = document.getElementById(elementId);
+      const msg = el.textContent ? el.textContent + '\n' + message : message;
+      el.textContent = msg;
+      el.className = `status ${type}`;
+    }
+
+    function checkSDKs() {
+      let output = '🔍 Verificando SDKs...\n\n';
+      
+      // Verifica se os SDKs foram carregados
+      if (window.dataSdk) {
+        output += '✅ dataSdk carregado\n';
+        output += `   Storage: ${window.dataSdk.storage ? window.dataSdk.storage.length + ' itens' : 'vazio'}\n`;
+      } else {
+        output += '❌ dataSdk NÃO foi carregado!\n';
+        output += '   Verifique: <script src="./_sdk/data_sdk.js"></script>\n';
+      }
+      
+      if (window.elementSdk) {
+        output += '✅ elementSdk carregado\n';
+      } else {
+        output += '❌ elementSdk NÃO foi carregado!\n';
+      }
+
+      if (errorLog.length > 0) {
+        output += '\n⚠️ Erros detectados:\n' + errorLog.join('\n');
+      }
+
+      log('sdk-status', output, window.dataSdk && window.elementSdk ? 'success' : 'error');
+    }
+
+    function testStorage() {
+      try {
+        localStorage.setItem('test_jmar', 'funciona');
+        const value = localStorage.getItem('test_jmar');
+        localStorage.removeItem('test_jmar');
+        
+        if (value === 'funciona') {
+          log('storage-status', '✅ localStorage funcionando normalmente!', 'success');
+        } else {
+          log('storage-status', '❌ localStorage não está guardando dados!', 'error');
+        }
+      } catch (e) {
+        log('storage-status', `❌ Erro ao acessar localStorage:\n${e.message}`, 'error');
+      }
+    }
+
+    function viewStorage() {
+      try {
+        const data = localStorage.getItem('jmar_data');
+        if (!data) {
+          log('storage-status', '⚠️ Nenhum dado salvo em jmar_data', 'warning');
+        } else {
+          const parsed = JSON.parse(data);
+          log('storage-status', `✅ ${parsed.length} registros encontrados:\n${JSON.stringify(parsed, null, 2)}`, 'success');
+        }
+      } catch (e) {
+        log('storage-status', `❌ Erro: ${e.message}`, 'error');
+      }
+    }
+
+    function clearStorage() {
+      localStorage.removeItem('jmar_data');
+      log('storage-status', '✅ localStorage "jmar_data" limpo!', 'success');
+    }
+
+    function addTestData() {
+      try {
+        const data = JSON.parse(localStorage.getItem('jmar_data') || '[]');
+        data.push({
+          id: Date.now().toString(),
+          type: 'client',
+          client_name: 'Cliente Teste ' + new Date().toLocaleTimeString(),
+          created_at: new Date().toISOString()
+        });
+        localStorage.setItem('jmar_data', JSON.stringify(data));
+        log('storage-status', `✅ Dados adicionados!\nTotal: ${data.length} registros`, 'success');
+      } catch (e) {
+        log('storage-status', `❌ Erro: ${e.message}`, 'error');
+      }
+    }
+
+    function runFullTest() {
+      let output = '🧪 Executando testes completos...\n\n';
+      
+      // Teste 1: SDKs
+      output += '1️⃣ Carregamento de SDKs:\n';
+      output += window.dataSdk ? '   ✅ dataSdk\n' : '   ❌ dataSdk\n';
+      output += window.elementSdk ? '   ✅ elementSdk\n' : '   ❌ elementSdk\n';
+      
+      // Teste 2: localStorage
+      output += '\n2️⃣ localStorage:\n';
+      try {
+        localStorage.setItem('test', 'ok');
+        localStorage.removeItem('test');
+        output += '   ✅ Funcionando\n';
+      } catch (e) {
+        output += `   ❌ ${e.message}\n`;
+      }
+      
+      // Teste 3: Dados
+      output += '\n3️⃣ Dados salvos:\n';
+      try {
+        const data = JSON.parse(localStorage.getItem('jmar_data') || '[]');
+        output += `   ${data.length} registros\n`;
+        if (data.length > 0) {
+          output += `   ✅ Alguns dados existem\n`;
+        } else {
+          output += `   ⚠️ Nenhum dado salvo\n`;
+        }
+      } catch (e) {
+        output += `   ❌ ${e.message}\n`;
+      }
+      
+      // Teste 4: Funções
+      output += '\n4️⃣ Funções disponíveis:\n';
+      output += typeof window.dataSdk?.create === 'function' ? '   ✅ dataSdk.create\n' : '   ❌ dataSdk.create\n';
+      output += typeof window.dataSdk?.read === 'function' ? '   ✅ dataSdk.read\n' : '   ❌ dataSdk.read\n';
+      output += typeof window.dataSdk?.init === 'function' ? '   ✅ dataSdk.init\n' : '   ❌ dataSdk.init\n';
+
+      const hasErrors = errorLog.length > 0;
+      output += '\n5️⃣ Erros em tempo de execução:\n';
+      if (hasErrors) {
+        output += errorLog.join('\n');
+      } else {
+        output += '   ✅ Nenhum erro detectado\n';
+      }
+
+      log('full-test-status', output, hasErrors ? 'error' : 'success');
+    }
+
+    function showSystemInfo() {
+      let output = '📊 Informações do Sistema\n\n';
+      output += `User-Agent: ${navigator.userAgent}\n`;
+      output += `Plataforma: ${navigator.platform}\n`;
+      output += `localStorage: ${typeof(Storage) !== 'undefined' ? 'Disponível' : 'NÃO disponível'}\n`;
+      output += `JavaScript: Habilitado\n`;
+      output += `URL: ${window.location.href}\n`;
+      output += `Origin: ${window.location.origin}\n`;
+      
+      log('system-info', output, 'info');
+    }
+
+    // Executa verificação de SDKs ao carregar
+    window.addEventListener('load', checkSDKs);
+  </script>
+</body>
+</html>
