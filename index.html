@@ -645,23 +645,7 @@
           ...piece,
           [taskField]: true,
           [`${taskField}_by`]: person,
-      // Se o Firebase estiver configurado, subimos o arquivo e salvamos a URL
-      if (isFirebaseAvailable()) {
-        try {
-          showToast('Enviando foto para o servidor...');
-          const url = await uploadFileToFirebase(file, 'photos');
-          const result = await window.dataSdk.create({
-            type: 'photo', file_data: url, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
-            client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
-          });
-          if (result.isOk) { hideUploadPhotoModal(); document.getElementById('photo-file-input').value = ''; document.getElementById('photo-title-input').value = ''; document.getElementById('photo-responsible-input').value = ''; document.getElementById('photo-description-input').value = ''; showToast('✅ Foto enviada com sucesso!'); allData = window.dataSdk.storage; renderPhotos(); }
-          else showToast('❌ Erro ao salvar registro.', 'error');
-        } catch (err) {
-          console.error('Erro no upload Firebase:', err);
-          showToast('Erro ao enviar foto para o servidor.', 'error');
-        }
-        return;
-      }
+          [`${taskField}_date`]: date
         };
         const result = await window.dataSdk.update(updatedPiece);
         if (result.isOk) {
@@ -2023,30 +2007,7 @@
         const updates = {
           ...order,
           [statusField]: true,
-      // Se o Firebase estiver configurado, subimos o arquivo e salvamos a URL
-      if (isFirebaseAvailable()) {
-        try {
-          showToast('Enviando vídeo para o servidor...');
-          const url = await uploadFileToFirebase(file, 'videos');
-          const result = await window.dataSdk.create({
-            type: 'video', file_data: url, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
-            client_id: document.getElementById('detail-client-name').textContent
-          });
-          if (result.isOk) { 
-            hideUploadVideoModal(); 
-            document.getElementById('video-file-input').value = ''; 
-            document.getElementById('video-name-input').value = ''; 
-            document.getElementById('video-responsible-input').value = ''; 
-            document.getElementById('video-description-input').value = ''; 
-            showToast('✅ Vídeo enviado com sucesso!'); allData = window.dataSdk.storage; renderVideos();
-          }
-          else showToast('❌ Erro ao salvar registro.', 'error');
-        } catch (err) {
-          console.error('Erro no upload Firebase:', err);
-          showToast('Erro ao enviar vídeo para o servidor.', 'error');
-        }
-        return;
-      }
+          [`${statusField}_by`]: person,
           [`${statusField}_date`]: date
         };
 
