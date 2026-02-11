@@ -7,8 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="./sdk/element_sdk.js"></script>
   <script src="./sdk/data_sdk.js"></script>
+  <script src="./sdk/server_sdk.js"></script>
 
   <script>
+    // Detectar qual SDK usar
+    const getActiveSDK = () => window.serverSdk || getActiveSDK();
+
     // ImgBB Configuration
     const IMGBB_API_KEY = 'dbf7a7cb4a1b8eb50350945ebe0e5545';
     const IMGBB_API_URL = 'https://api.imgbb.com/1/upload';
@@ -314,14 +318,14 @@
 
     async function deleteRecord(record) {
       console.log('📤 Deletando registro:', record);
-      const result = await window.dataSdk.delete(record.id || record.__backendId);
+      const result = await getActiveSDK().delete(record.id || record.__backendId);
       if (result.isOk) { 
         console.log('✅ Registro deletado com sucesso');
         // Atualiza allData e a tela
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderClients(window.dataSdk.storage);
-        renderNotices(window.dataSdk.storage);
+        renderClients(getActiveSDK().storage);
+        renderNotices(getActiveSDK().storage);
         showToast('Registro excluído!');
       }
       else {
@@ -385,7 +389,7 @@
         }
 
         // Salva apenas metadados no banco
-        const result = await window.dataSdk.create({
+        const result = await getActiveSDK().create({
           type: 'project', file_name: file.name, file_data: fileKey, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '', piece_name: '', piece_type: '',
           caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', regulagem: false, regulagem_by: '', regulagem_date: '', 
@@ -422,7 +426,7 @@
         
         if (imageUrl) {
           // Sucesso no ImgBB - salvar com URL remota
-          const result = await window.dataSdk.create({
+          const result = await getActiveSDK().create({
             type: 'photo', file_data: imageUrl, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
             client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
           });
@@ -433,7 +437,7 @@
             document.getElementById('photo-responsible-input').value = ''; 
             document.getElementById('photo-description-input').value = ''; 
             showToast('✅ Foto enviada com sucesso! Disponível em qualquer aparelho.'); 
-            allData = window.dataSdk.storage; 
+            allData = getActiveSDK().storage; 
             renderPhotos(); 
           }
           else showToast('❌ Erro ao salvar registro.', 'error');
@@ -455,7 +459,7 @@
           return;
         }
 
-        const result = await window.dataSdk.create({
+        const result = await getActiveSDK().create({
           type: 'photo', file_data: fileKey, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
         });
@@ -466,7 +470,7 @@
           document.getElementById('photo-responsible-input').value = ''; 
           document.getElementById('photo-description-input').value = ''; 
           showToast('⚠️ Foto salva localmente. Acesso apenas neste aparelho.'); 
-          allData = window.dataSdk.storage; 
+          allData = getActiveSDK().storage; 
           renderPhotos(); 
         }
         else showToast('❌ Erro ao enviar foto.', 'error');
@@ -497,7 +501,7 @@
           return;
         }
 
-        const result = await window.dataSdk.create({
+        const result = await getActiveSDK().create({
           type: 'video', file_data: fileKey, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '',
           piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
@@ -539,7 +543,7 @@
         });
       }
 
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'order', os_title: document.getElementById('os-title-input').value.trim(),
         os_date: document.getElementById('os-date-input').value, os_solicitante: document.getElementById('os-solicitante-input').value.trim(),
         os_description: document.getElementById('os-description-input').value.trim(), created_at: new Date().toISOString(),
@@ -561,7 +565,7 @@
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
       const name = document.getElementById('client-name-input').value.trim();
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'client', client_name: name, created_at: new Date().toISOString(), title: '', content: '', piece_name: '', piece_type: '',
         caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', regulagem: false, regulagem_by: '', regulagem_date: '',
         vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -575,9 +579,9 @@
         document.getElementById('client-name-input').value = '';
         showToast('Cliente adicionado!');
         // Atualiza a tela com os novos dados
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderClients(window.dataSdk.storage);
+        renderClients(getActiveSDK().storage);
       }
       else showToast('Erro ao adicionar.', 'error');
     }
@@ -586,7 +590,7 @@
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'notice', title: document.getElementById('notice-title-input').value.trim(),
         content: document.getElementById('notice-content-input').value.trim(), created_at: new Date().toISOString(),
         client_name: '', piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '',
@@ -603,9 +607,9 @@
         document.getElementById('notice-content-input').value = '';
         showToast('Aviso adicionado!');
         // Atualiza a tela com os novos dados
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderNotices(window.dataSdk.storage);
+        renderNotices(getActiveSDK().storage);
       }
       else showToast('Erro ao adicionar.', 'error');
     }
@@ -614,7 +618,7 @@
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'piece', piece_name: document.getElementById('piece-name-input').value.trim(),
         piece_type: document.getElementById('piece-type-select').value, created_at: new Date().toISOString(),
         client_id: currentClientForChecklist, caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
@@ -631,7 +635,7 @@
         document.getElementById('piece-type-select').value = '';
         showToast('Peça adicionada!');
         // Atualiza a tela com os novos dados
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
       }
       else showToast('Erro ao adicionar.', 'error');
@@ -1061,22 +1065,25 @@
       document.getElementById('register-screen').classList.remove('hidden');
     }
 
-    function handleLogin(event) {
+    async function handleLogin(event) {
       event.preventDefault();
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value.trim();
 
-      if (users[username] && users[username] === password) {
+      showToast('Autenticando...');
+      const result = await window.serverSdk.login(username, password);
+      
+      if (result.isOk) {
         currentUser = username;
         document.getElementById('login-screen').classList.add('hidden');
         showScreen('home-screen');
         showToast(`Bem-vindo, ${username}!`);
       } else {
-        showToast('Usuário ou senha incorretos!', 'error');
+        showToast(result.error || 'Erro ao fazer login', 'error');
       }
     }
 
-    function handleRegister(event) {
+    async function handleRegister(event) {
       event.preventDefault();
       const username = document.getElementById('register-username').value.trim();
       const password = document.getElementById('register-password').value.trim();
@@ -1094,18 +1101,19 @@
         showToast('Senhas não coincidem!', 'error');
         return;
       }
-      if (users[username]) {
-        showToast('Usuário já existe!', 'error');
-        return;
-      }
 
-      users[username] = password;
-      localStorage.setItem('jmar_users', JSON.stringify(users));
-      showToast('Conta criada com sucesso!');
-      showLoginMode();
-      document.getElementById('register-username').value = '';
-      document.getElementById('register-password').value = '';
-      document.getElementById('register-password-confirm').value = '';
+      showToast('Criando conta...');
+      const result = await window.serverSdk.register(username, password);
+      
+      if (result.isOk) {
+        showToast('Conta criada com sucesso!');
+        showLoginMode();
+        document.getElementById('register-username').value = '';
+        document.getElementById('register-password').value = '';
+        document.getElementById('register-password-confirm').value = '';
+      } else {
+        showToast(result.error || 'Erro ao criar conta', 'error');
+      }
     }
 
     function logout() {
@@ -1124,8 +1132,8 @@
       document.getElementById(screenId).classList.remove('hidden');
       
       // Sempre carrega dados do localStorage quando muda de tela
-      if (window.dataSdk && window.dataSdk.storage) {
-        allData = window.dataSdk.storage;
+      if (getActiveSDK() && getActiveSDK().storage) {
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
         console.log('📊 Dados carregados para tela:', allData.length, 'registros');
       } else {
@@ -1251,7 +1259,7 @@
           [`${taskField}_by`]: person,
           [`${taskField}_date`]: date
         };
-        const result = await window.dataSdk.update(updatedPiece);
+        const result = await getActiveSDK().update(updatedPiece);
         if (result.isOk) {
           hideTaskModal();
           showToast(`Etapa "${taskField}" concluída por ${person}!`);
@@ -1301,7 +1309,7 @@
             });
             updates.os_all_videos = JSON.stringify(videosArray);
             
-            const result = await window.dataSdk.update(updates);
+            const result = await getActiveSDK().update(updates);
             if (result.isOk) {
               hideOSStatusModal();
               showToast('Status atualizado com sucesso!');
@@ -1312,7 +1320,7 @@
           };
           reader.readAsDataURL(videoFile);
         } else {
-          const result = await window.dataSdk.update(updates);
+          const result = await getActiveSDK().update(updates);
           if (result.isOk) {
             hideOSStatusModal();
             showToast('Status atualizado com sucesso!');
@@ -1629,14 +1637,14 @@
 
     async function deleteRecord(record) {
       console.log('📤 Deletando registro:', record);
-      const result = await window.dataSdk.delete(record.id || record.__backendId);
+      const result = await getActiveSDK().delete(record.id || record.__backendId);
       if (result.isOk) { 
         console.log('✅ Registro deletado com sucesso');
         // Atualiza allData e a tela
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderClients(window.dataSdk.storage);
-        renderNotices(window.dataSdk.storage);
+        renderClients(getActiveSDK().storage);
+        renderNotices(getActiveSDK().storage);
         showToast('Registro excluído!');
       }
       else {
@@ -1700,7 +1708,7 @@
         }
 
         // Salva apenas metadados no banco
-        const result = await window.dataSdk.create({
+        const result = await getActiveSDK().create({
           type: 'project', file_name: file.name, file_data: fileKey, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '', piece_name: '', piece_type: '',
           caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', regulagem: false, regulagem_by: '', regulagem_date: '', 
@@ -1741,7 +1749,7 @@
           return;
         }
 
-        const result = await window.dataSdk.create({
+        const result = await getActiveSDK().create({
           type: 'video', file_data: fileKey, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '',
           piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
@@ -1783,7 +1791,7 @@
         });
       }
 
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'order', os_title: document.getElementById('os-title-input').value.trim(),
         os_date: document.getElementById('os-date-input').value, os_solicitante: document.getElementById('os-solicitante-input').value.trim(),
         os_description: document.getElementById('os-description-input').value.trim(), created_at: new Date().toISOString(),
@@ -1805,7 +1813,7 @@
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
       const name = document.getElementById('client-name-input').value.trim();
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'client', client_name: name, created_at: new Date().toISOString(), title: '', content: '', piece_name: '', piece_type: '',
         caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', regulagem: false, regulagem_by: '', regulagem_date: '',
         vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -1819,9 +1827,9 @@
         document.getElementById('client-name-input').value = '';
         showToast('Cliente adicionado!');
         // Atualiza a tela com os novos dados
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderClients(window.dataSdk.storage);
+        renderClients(getActiveSDK().storage);
       }
       else showToast('Erro ao adicionar.', 'error');
     }
@@ -1830,7 +1838,7 @@
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'notice', title: document.getElementById('notice-title-input').value.trim(),
         content: document.getElementById('notice-content-input').value.trim(), created_at: new Date().toISOString(),
         client_name: '', piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '',
@@ -1847,9 +1855,9 @@
         document.getElementById('notice-content-input').value = '';
         showToast('Aviso adicionado!');
         // Atualiza a tela com os novos dados
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderNotices(window.dataSdk.storage);
+        renderNotices(getActiveSDK().storage);
       }
       else showToast('Erro ao adicionar.', 'error');
     }
@@ -1858,7 +1866,7 @@
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
-      const result = await window.dataSdk.create({
+      const result = await getActiveSDK().create({
         type: 'piece', piece_name: document.getElementById('piece-name-input').value.trim(),
         piece_type: document.getElementById('piece-type-select').value, created_at: new Date().toISOString(),
         client_id: currentClientForChecklist, caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
@@ -1875,7 +1883,7 @@
         document.getElementById('piece-type-select').value = '';
         showToast('Peça adicionada!');
         // Atualiza a tela com os novos dados
-        allData = window.dataSdk.storage;
+        allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
       }
       else showToast('Erro ao adicionar.', 'error');
@@ -1901,14 +1909,24 @@
       console.log('📦 localStorage jmar_data:', localStorage.getItem('jmar_data'));
       
       if (window.elementSdk) window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
-      if (window.dataSdk) {
-        console.log('📚 dataSdk encontrado, iniciando...');
-        const result = await window.dataSdk.init(dataHandler);
+      
+      // Tentar usar serverSdk (Node.js + SQLite)
+      if (window.serverSdk) {
+        console.log('📚 serverSdk encontrado, conectando ao servidor...');
+        const result = await window.serverSdk.init(dataHandler);
+        console.log('✅ serverSdk init resultado:', result);
+        console.log('📊 Dados carregados:', window.serverSdk.storage);
+        if (!result.isOk) showToast('Erro ao conectar ao servidor.', 'error');
+      } 
+      // Fallback para dataSdk (localStorage)
+      else if (getActiveSDK()) {
+        console.log('📚 serverSdk não encontrado, usando dataSdk...');
+        const result = await getActiveSDK().init(dataHandler);
         console.log('✅ dataSdk init resultado:', result);
-        console.log('📊 Dados carregados:', window.dataSdk.storage);
+        console.log('📊 Dados carregados:', getActiveSDK().storage);
         if (!result.isOk) showToast('Erro ao conectar.', 'error');
       } else {
-        console.error('❌ dataSdk não encontrado!');
+        console.error('❌ Nenhum SDK encontrado!');
       }
     }
     
