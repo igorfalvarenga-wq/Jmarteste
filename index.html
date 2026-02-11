@@ -5,6 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JMAR - Gestão de Obras</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase (compat) - substitua firebaseConfig abaixo pelos seus valores -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script>
+    // TODO: cole aqui seu firebaseConfig obtido no Firebase Console
+    // Exemplo:
+    // const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "your-bucket.appspot.com", messagingSenderId: "...", appId: "..." };
+    try {
+      if (typeof firebaseConfig !== 'undefined' && firebaseConfig && firebaseConfig.storageBucket) {
+        firebase.initializeApp(firebaseConfig);
+        window.FIREBASE_ENABLED = true;
+        console.log('✅ Firebase inicializado');
+      } else {
+        window.FIREBASE_ENABLED = false;
+        console.log('⚠️ Firebase não configurado (firebaseConfig vazio). Usando localStorage.');
+      }
+    } catch (e) {
+      window.FIREBASE_ENABLED = false;
+      console.warn('⚠️ Erro ao inicializar Firebase:', e.message);
+    }
+  </script>
   <script src="./sdk/element_sdk.js"></script>
   <script src="./sdk/data_sdk.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -617,7 +638,23 @@
           ...piece,
           [taskField]: true,
           [`${taskField}_by`]: person,
-          [`${taskField}_date`]: date
+      // Se o Firebase estiver configurado, subimos o arquivo e salvamos a URL
+      if (isFirebaseAvailable()) {
+        try {
+          showToast('Enviando foto para o servidor...');
+          const url = await uploadFileToFirebase(file, 'photos');
+          const result = await window.dataSdk.create({
+            type: 'photo', file_data: url, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
+            client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
+          });
+          if (result.isOk) { hideUploadPhotoModal(); document.getElementById('photo-file-input').value = ''; document.getElementById('photo-title-input').value = ''; document.getElementById('photo-responsible-input').value = ''; document.getElementById('photo-description-input').value = ''; showToast('✅ Foto enviada com sucesso!'); allData = window.dataSdk.storage; renderPhotos(); }
+          else showToast('❌ Erro ao salvar registro.', 'error');
+        } catch (err) {
+          console.error('Erro no upload Firebase:', err);
+          showToast('Erro ao enviar foto para o servidor.', 'error');
+        }
+        return;
+      }
         };
         const result = await window.dataSdk.update(updatedPiece);
         if (result.isOk) {
@@ -1084,7 +1121,18 @@
       reader.readAsDataURL(file);
     }
 
-    async function handleUploadPhoto(event) {
+      async function uploadFileToFirebase(file, folder = 'uploads') {
+        if (!window.FIREBASE_ENABLED || !window.firebase || !firebase.storage) return null;
+        const path = `${folder}/${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
+        const storageRef = firebase.storage().ref().child(path);
+        const snapshot = await storageRef.put(file);
+        const url = await snapshot.ref.getDownloadURL();
+        return url;
+      }
+
+      function isFirebaseAvailable() { return !!(window.FIREBASE_ENABLED && window.firebase && firebase.storage); }
+
+      async function handleUploadPhoto(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite de 999 registros atingido.', 'error'); return; }
 
@@ -1095,31 +1143,43 @@
       if (!file) { showToast('Selecione uma foto', 'error'); return; }
       if (!title) { showToast('Digite um título para a foto', 'error'); return; }
       if (!responsible) { showToast('Digite seu nome', 'error'); return; }
-
-      const fileKey = `photo_${Date.now()}_${Math.random()}`;
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          localStorage.setItem(fileKey, e.target.result);
-        } catch (err) {
-          showToast('Arquivo muito grande. Máximo: 5MB', 'error');
+        // Se o Firebase estiver configurado, subimos o arquivo e salvamos a URL
+        if (isFirebaseAvailable()) {
+          try {
+            showToast('Enviando foto para o servidor...');
+            const url = await uploadFileToFirebase(file, 'photos');
+            const result = await window.dataSdk.create({
+              type: 'photo', file_data: url, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
+              client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
+            });
+            if (result.isOk) { hideUploadPhotoModal(); document.getElementById('photo-file-input').value = ''; document.getElementById('photo-title-input').value = ''; document.getElementById('photo-responsible-input').value = ''; document.getElementById('photo-description-input').value = ''; showToast('✅ Foto enviada com sucesso!'); allData = window.dataSdk.storage; renderPhotos(); }
+            else showToast('❌ Erro ao salvar registro.', 'error');
+          } catch (err) {
+            console.error('Erro no upload Firebase:', err);
+            showToast('Erro ao enviar foto para o servidor.', 'error');
+          }
           return;
         }
 
-        const result = await window.dataSdk.create({
-          type: 'photo', file_data: fileKey, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
-          client_id: document.getElementById('detail-client-name').textContent, file_name: file.name, title: '', content: '', client_name: '',
-          piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
-          regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
-          video_description: '', video_responsible: '', os_title: '', os_date: '', os_solicitante: '', os_description: '', os_video_file: '', os_video_name: '',
-          os_archived: false, os_archived_by: '', os_archived_date: '', os_produced: false, os_produced_by: '', os_produced_date: '',
-          os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
-          os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
-        });
-        if (result.isOk) { hideUploadPhotoModal(); document.getElementById('photo-file-input').value = ''; document.getElementById('photo-title-input').value = ''; document.getElementById('photo-responsible-input').value = ''; document.getElementById('photo-description-input').value = ''; showToast('✅ Foto enviada com sucesso!'); renderPhotos(); }
-        else showToast('❌ Erro ao enviar foto.', 'error');
-      };
-      reader.readAsDataURL(file);
+        // Fallback para salvar no localStorage quando Firebase não configurado
+        const fileKey = `photo_${Date.now()}_${Math.random()}`;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            localStorage.setItem(fileKey, e.target.result);
+          } catch (err) {
+            showToast('Arquivo muito grande. Máximo: 5MB', 'error');
+            return;
+          }
+
+          const result = await window.dataSdk.create({
+            type: 'photo', file_data: fileKey, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
+            client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
+          });
+          if (result.isOk) { hideUploadPhotoModal(); document.getElementById('photo-file-input').value = ''; document.getElementById('photo-title-input').value = ''; document.getElementById('photo-responsible-input').value = ''; document.getElementById('photo-description-input').value = ''; showToast('✅ Foto enviada com sucesso!'); allData = window.dataSdk.storage; renderPhotos(); }
+          else showToast('❌ Erro ao enviar foto.', 'error');
+        };
+        reader.readAsDataURL(file);
     }
 
     async function handleUploadVideo(event) {
@@ -1956,7 +2016,30 @@
         const updates = {
           ...order,
           [statusField]: true,
-          [`${statusField}_by`]: person,
+      // Se o Firebase estiver configurado, subimos o arquivo e salvamos a URL
+      if (isFirebaseAvailable()) {
+        try {
+          showToast('Enviando vídeo para o servidor...');
+          const url = await uploadFileToFirebase(file, 'videos');
+          const result = await window.dataSdk.create({
+            type: 'video', file_data: url, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
+            client_id: document.getElementById('detail-client-name').textContent
+          });
+          if (result.isOk) { 
+            hideUploadVideoModal(); 
+            document.getElementById('video-file-input').value = ''; 
+            document.getElementById('video-name-input').value = ''; 
+            document.getElementById('video-responsible-input').value = ''; 
+            document.getElementById('video-description-input').value = ''; 
+            showToast('✅ Vídeo enviado com sucesso!'); allData = window.dataSdk.storage; renderVideos();
+          }
+          else showToast('❌ Erro ao salvar registro.', 'error');
+        } catch (err) {
+          console.error('Erro no upload Firebase:', err);
+          showToast('Erro ao enviar vídeo para o servidor.', 'error');
+        }
+        return;
+      }
           [`${statusField}_date`]: date
         };
 
