@@ -148,6 +148,35 @@
       `}).join('');
     }
 
+    // Função segura para abrir vídeos sem travar o HTML
+    function playVideo(id, context, index) {
+      const record = allData.find(d => String(d.__backendId) === String(id));
+      if (!record) { showToast('Registro não encontrado', 'error'); return; }
+
+      let data = null;
+      let title = 'Vídeo';
+
+      if (context === 'video_record') {
+        data = record.file_data;
+        title = record.video_name || record.file_name;
+      } else if (context === 'order_initial') {
+        data = record.os_initial_video;
+        title = 'Vídeo Inicial da O.S.';
+      } else if (context === 'order_final') {
+        data = record.os_finalized_video;
+        title = 'Vídeo da Conclusão';
+      } else if (context === 'order_list') {
+        const list = record.os_all_videos ? JSON.parse(record.os_all_videos) : [];
+        if (list[index]) {
+          data = list[index].video_data;
+          title = `Vídeo - ${list[index].uploaded_by}`;
+        }
+      }
+
+      if (data) showVideoPlayerModal(data, title);
+      else showToast('Vídeo não disponível', 'error');
+    }
+
     function renderVideos() {
       const container = document.getElementById('videos-container');
       const clientName = document.getElementById('detail-client-name').textContent;
@@ -159,7 +188,6 @@
       }
 
       container.innerHTML = videos.map((video, index) => {
-        const videoData = localStorage.getItem(video.file_data) || video.file_data;
         const videoTitle = video.video_name || video.file_name || 'Vídeo';
         return `
         <div class="client-card bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-lg" style="animation-delay: ${index * 0.05}s">
@@ -173,7 +201,7 @@
               <p class="text-slate-400 text-xs mt-1">${new Date(video.created_at).toLocaleDateString('pt-BR')}</p>
               <p class="text-white mt-2 text-xs">${video.video_description}</p>
               <div class="flex gap-2 mt-3">
-                <button onclick="showVideoPlayerModal('${videoData}', '${videoTitle}')" class="text-blue-400 hover:text-blue-300 text-sm font-medium">▶ Assistir</button>
+                <button onclick="playVideo('${video.__backendId}', 'video_record')" class="text-blue-400 hover:text-blue-300 text-sm font-medium">▶ Assistir</button>
                 <button onclick="deleteVideo('${video.__backendId}')" class="text-red-400 hover:text-red-300 text-sm font-medium">Excluir</button>
               </div>
             </div>
@@ -221,7 +249,7 @@
                 </div>
                 ${order.os_initial_video ? `
                   <div class="bg-blue-900/30 border border-blue-600 rounded-lg p-2 mb-3">
-                    <button onclick="showVideoPlayerModal('${order.os_initial_video}', 'Vídeo Inicial da O.S.')" class="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-2">
+                    <button onclick="playVideo('${order.__backendId}', 'order_initial')" class="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-2">
                       ▶ Ver Vídeo Inicial
                     </button>
                   </div>
@@ -241,7 +269,7 @@
                             <p class="text-slate-400 text-xs">${status.by}</p>
                             <p class="text-slate-400 text-xs">${new Date(status.date).toLocaleDateString('pt-BR')}</p>
                             ${status.field === 'os_archived' && status.number ? `<p class="text-yellow-400 text-xs font-bold">OS: ${status.number}</p>` : ''}
-                            ${status.hasVideo ? `<button onclick="showVideoPlayerModal('${order.os_finalized_video}', 'Vídeo da Conclusão')" class="text-blue-400 hover:text-blue-300 text-xs font-medium mt-1">▶ Ver Vídeo</button>` : ''}
+                            ${status.hasVideo ? `<button onclick="playVideo('${order.__backendId}', 'order_final')" class="text-blue-400 hover:text-blue-300 text-xs font-medium mt-1">▶ Ver Vídeo</button>` : ''}
                           </div>
                         ` : ''}
                       </div>
@@ -260,7 +288,7 @@
                             <p class="text-white text-xs font-medium">${vid.uploaded_by}</p>
                             <p class="text-slate-400 text-xs">${new Date(vid.uploaded_date).toLocaleDateString('pt-BR')}</p>
                           </div>
-                          <button onclick="showVideoPlayerModal('${vid.video_data}', 'Vídeo - ${vid.uploaded_by}')" class="text-red-400 hover:text-red-300 text-xs font-medium">▶ Assistir</button>
+                          <button onclick="playVideo('${order.__backendId}', 'order_list', ${i})" class="text-red-400 hover:text-red-300 text-xs font-medium">▶ Assistir</button>
                         </div>
                       `).join('')}
                     </div>
@@ -276,16 +304,16 @@
 
     function deleteClient(id) { 
       console.log('🗑️ Tentando deletar cliente com ID:', id);
-      const r = allData.find(d => d.__backendId === id); 
+      const r = allData.find(d => String(d.__backendId) === String(id)); 
       console.log('📋 Registro encontrado:', r);
       if (r) deleteRecord(r); 
       else console.warn('⚠️ Registro não encontrado em allData');
     }
-    function deleteNotice(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deletePiece(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deletePhoto(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deleteVideo(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deleteOrder(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
+    function deleteNotice(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deletePiece(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deletePhoto(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deleteVideo(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deleteOrder(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
 
     async function deleteRecord(record) {
       console.log('📤 Deletando registro:', record);
@@ -306,29 +334,28 @@
     }
 
     function downloadProject(projectId) {
-      const project = allData.find(p => p.__backendId === projectId);
-      if (project && project.file_data) {
-        let pdfData = project.file_data;
-        
-        // Se for uma chave do localStorage, recupera o arquivo
-        if (!pdfData.startsWith('data:') && !pdfData.startsWith('blob:')) {
-          const fromStorage = localStorage.getItem(project.file_data);
-          if (fromStorage) {
-            pdfData = fromStorage;
-          }
-        }
-        
-        if (pdfData && pdfData.startsWith('data:')) {
-          const link = document.createElement('a');
-          link.href = pdfData;
-          link.download = project.file_name || 'projeto.pdf';
-          link.click();
-          showToast('✅ Download iniciado!');
-        } else {
-          showToast('❌ Arquivo não encontrado', 'error');
-        }
+      const project = allData.find(p => String(p.__backendId) === String(projectId));
+      if (project && project.file_data && project.file_data.startsWith('data:')) {
+        // Converte Base64 para Blob para evitar limites de tamanho de URL no navegador
+        fetch(project.file_data)
+          .then(res => res.blob())
+          .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = project.file_name || 'projeto.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            showToast('✅ Download iniciado!');
+          })
+          .catch(err => {
+            console.error('Erro ao baixar PDF:', err);
+            showToast('❌ Erro ao processar o arquivo.', 'error');
+          });
       } else {
-        showToast('❌ Arquivo não encontrado', 'error');
+        showToast('❌ Arquivo PDF não encontrado ou corrompido.', 'error');
       }
     }
 
@@ -366,8 +393,6 @@
       reader.readAsDataURL(file);
     }
 
-    // Firebase functions removed - using ImgBB instead
-
     async function handleUploadPhoto(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite de 999 registros atingido.', 'error'); return; }
@@ -402,6 +427,7 @@
       reader.readAsDataURL(file);
     }
 
+    // A função handleUploadVideo foi corrigida e movida para o final do arquivo.
     async function handleUploadVideo(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite de 999 registros atingido.', 'error'); return; }
@@ -415,9 +441,15 @@
       if (!responsible) { showToast('Digite seu nome', 'error'); return; }
       if (!desc) { showToast('Descreva o vídeo', 'error'); return; }
 
+      // Limite de segurança (Base64 aumenta o tamanho em ~33%, então 30MB vira ~40MB)
+      if (file.size > 30 * 1024 * 1024) { 
+        showToast('Vídeo muito grande! Máximo: 30MB', 'error'); 
+        return; 
+      }
+
       const reader = new FileReader();
       reader.onload = async (e) => {
-        // Envia o vídeo diretamente para o servidor
+        // Envia o vídeo diretamente para o servidor (agora global)
         const result = await getActiveSDK().create({
           type: 'video', file_data: e.target.result, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '',
@@ -477,6 +509,7 @@
       else showToast('Erro ao criar.', 'error');
     }
 
+    // A função handleAddClient foi corrigida e movida para o final do arquivo.
     async function handleAddClient(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
@@ -558,7 +591,6 @@
       else showToast('Erro ao adicionar.', 'error');
     }
 
-    // Duplicate removed - kept only at the end of the file
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
   <style>
@@ -1144,18 +1176,8 @@
     function hideOSStatusModal() { document.getElementById('os-status-modal').classList.add('hidden'); }
 
     function showVideoPlayerModal(videoData, videoName) {
-      let videoSrc = videoData;
-      
-      // Se for uma chave do localStorage, recupera o arquivo
-      if (videoData && !videoData.startsWith('data:') && !videoData.startsWith('blob:')) {
-        const fromStorage = localStorage.getItem(videoData);
-        if (fromStorage) {
-          videoSrc = fromStorage;
-        }
-      }
-      
       document.getElementById('video-player-title').textContent = videoName || 'Vídeo';
-      document.getElementById('video-player').src = videoSrc;
+      document.getElementById('video-player').src = videoData;
       document.getElementById('video-player-modal').classList.remove('hidden');
     }
 
@@ -1388,6 +1410,15 @@
       `).join('');
     }
 
+    function viewPhoto(id) {
+      const photo = allData.find(d => String(d.__backendId) === String(id));
+      if (photo) {
+        showPhotoViewerModal(photo.file_data, photo.photo_description, photo.photo_title, photo.photo_responsible);
+      } else {
+        showToast('Foto não encontrada.', 'error');
+      }
+    }
+
     function renderPhotos() {
       const container = document.getElementById('photos-container');
       const clientName = document.getElementById('detail-client-name').textContent;
@@ -1399,12 +1430,12 @@
       }
 
       container.innerHTML = photos.map((photo, index) => {
-        const photoData = localStorage.getItem(photo.file_data) || photo.file_data;
+        const photoData = photo.file_data;
         const photoTitle = photo.photo_title || 'Foto sem título';
         return `
         <div class="client-card bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-lg" style="animation-delay: ${index * 0.05}s">
           <div class="flex items-start gap-4">
-            <div class="w-24 h-24 bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onclick="showPhotoViewerModal('${photoData}', '${photo.photo_description}', '${photoTitle}', '${photo.photo_responsible}')">
+            <div class="w-24 h-24 bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onclick="viewPhoto('${photo.__backendId}')">
               <img src="${photoData}" alt="Foto" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22%23666%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z/%3E%3C/svg%3E'">
             </div>
             <div class="flex-1">
@@ -1413,7 +1444,7 @@
               <p class="text-slate-400 text-xs mt-1">${new Date(photo.created_at).toLocaleDateString('pt-BR')}</p>
               <p class="text-white mt-2 text-xs">${photo.photo_description}</p>
               <div class="flex gap-2 mt-3">
-                <button onclick="showPhotoViewerModal('${photoData}', '${photo.photo_description}', '${photoTitle}', '${photo.photo_responsible}')" class="text-blue-400 hover:text-blue-300 text-sm font-medium">👁️ Ver Foto</button>
+                <button onclick="viewPhoto('${photo.__backendId}')" class="text-blue-400 hover:text-blue-300 text-sm font-medium">👁️ Ver Foto</button>
                 <button onclick="deletePhoto('${photo.__backendId}')" class="text-red-400 hover:text-red-300 text-sm font-medium">🗑️ Excluir</button>
               </div>
             </div>
@@ -1433,7 +1464,6 @@
       }
 
       container.innerHTML = videos.map((video, index) => {
-        const videoData = localStorage.getItem(video.file_data) || video.file_data;
         const videoTitle = video.video_name || video.file_name || 'Vídeo';
         return `
         <div class="client-card bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-lg" style="animation-delay: ${index * 0.05}s">
@@ -1447,7 +1477,7 @@
               <p class="text-slate-400 text-xs mt-1">${new Date(video.created_at).toLocaleDateString('pt-BR')}</p>
               <p class="text-white mt-2 text-xs">${video.video_description}</p>
               <div class="flex gap-2 mt-3">
-                <button onclick="showVideoPlayerModal('${videoData}', '${videoTitle}')" class="text-blue-400 hover:text-blue-300 text-sm font-medium">▶ Assistir</button>
+                <button onclick="playVideo('${video.__backendId}', 'video_record')" class="text-blue-400 hover:text-blue-300 text-sm font-medium">▶ Assistir</button>
                 <button onclick="deleteVideo('${video.__backendId}')" class="text-red-400 hover:text-red-300 text-sm font-medium">Excluir</button>
               </div>
             </div>
@@ -1551,7 +1581,7 @@
     function deleteClient(id) { 
       if (currentUser !== 'admin') { showToast('Apenas administradores podem excluir clientes.', 'error'); return; }
       console.log('🗑️ Tentando deletar cliente com ID:', id);
-      const r = allData.find(d => String(d.__backendId) === String(id)); 
+      const r = allData.find(d => String(d.__backendId) === String(id));
       console.log('📋 Registro encontrado:', r);
       if (r) deleteRecord(r); 
       else console.warn('⚠️ Registro não encontrado em allData');
@@ -1581,43 +1611,8 @@
     }
 
     function downloadProject(projectId) {
-      const project = allData.find(p => p.__backendId === projectId);
-      if (project && project.file_data) {
-        let pdfData = project.file_data;
-        
-        // Se for uma chave do localStorage, recupera o arquivo
-        if (!pdfData.startsWith('data:') && !pdfData.startsWith('blob:')) {
-          const fromStorage = localStorage.getItem(project.file_data);
-          if (fromStorage) {
-            pdfData = fromStorage;
-          }
-        }
-        
-        if (pdfData && pdfData.startsWith('data:')) {
-          // Converte Base64 para Blob para evitar limites de tamanho de URL no navegador
-          fetch(pdfData)
-            .then(res => res.blob())
-            .then(blob => {
-              const url = window.URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = project.file_name || 'projeto.pdf';
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              window.URL.revokeObjectURL(url);
-              showToast('✅ Download iniciado!');
-            })
-            .catch(err => {
-              console.error('Erro ao baixar PDF:', err);
-              showToast('❌ Erro ao processar o arquivo.', 'error');
-            });
-        } else {
-          showToast('❌ Arquivo não encontrado', 'error');
-        }
-      } else {
-        showToast('❌ Arquivo não encontrado', 'error');
-      }
+      // Esta função foi corrigida e movida para o início do arquivo.
+      // Esta duplicata está sendo removida para evitar confusão.
     }
 
     function showToast(message, type = 'success') {
@@ -1708,6 +1703,7 @@
       reader.readAsDataURL(file);
     }
 
+    // A função handleAddOrder foi corrigida e movida para o final do arquivo.
     async function handleAddOrder(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
@@ -1770,6 +1766,7 @@
       else showToast('Erro ao adicionar.', 'error');
     }
 
+    // A função handleAddNotice foi corrigida e movida para o final do arquivo.
     async function handleAddNotice(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
@@ -1798,6 +1795,7 @@
       else showToast('Erro ao adicionar.', 'error');
     }
 
+    // A função handleAddPiece foi corrigida e movida para o final do arquivo.
     async function handleAddPiece(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
