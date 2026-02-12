@@ -4,6 +4,9 @@
 console.log('🚀 Carregando server_sdk.js...');
 
 window.serverSdk = {
+  // 🔴 CONFIGURAÇÃO: Se você hospedou o backend (Glitch/Render), cole o link aqui:
+  REMOTE_URL: '', // Cole aqui o link do Render (ex: 'https://jmar-api.onrender.com')
+
   SERVER_URL: 'http://localhost:3000', // Valor padrão
   isConnected: false,
   storage: [],
@@ -13,6 +16,9 @@ window.serverSdk = {
     // Lista de URLs para tentar (Auto-Discovery)
     const candidates = new Set();
     
+    // 0. Se tiver URL remota configurada, tenta ela primeiro
+    if (this.REMOTE_URL) candidates.add(this.REMOTE_URL);
+
     // 1. Se já estiver na porta 3000, usa a origem atual
     if (window.location.port === '3000') candidates.add(window.location.origin);
     
