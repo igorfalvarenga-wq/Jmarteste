@@ -5,7 +5,7 @@ console.log('🚀 Carregando server_sdk.js...');
 
 window.serverSdk = {
   // 🔴 CONFIGURAÇÃO: Se você hospedou o backend (Glitch/Render), cole o link aqui:
-  REMOTE_URL: '', // Deixe vazio para testar LOCALMENTE primeiro
+  REMOTE_URL: 'https://jmarteste.onrender.com',
 
   SERVER_URL: 'http://localhost:3000', // Valor padrão
   isConnected: false,
