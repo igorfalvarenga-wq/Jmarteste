@@ -632,9 +632,7 @@
        <div class="mb-6"><label class="text-white font-semibold mb-2 block">Senha</label> <input type="password" id="login-password" required class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none" placeholder="Digite sua senha">
        </div><button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl py-3 font-semibold transition-all"> Entrar </button>
       </form>
-      <div class="mt-4 text-center">
-       <p class="text-slate-400 text-sm">Primeira vez aqui? <button onclick="showRegisterMode()" class="text-blue-400 hover:text-blue-300 font-semibold">Cadastre-se</button></p>
-      </div>
+      <!-- Registro público desativado -->
      </div>
     </div>
    </div><!-- Tela de Registro -->
@@ -742,7 +740,7 @@
      </div>
     </header>
     <main class="flex-1 p-4 overflow-auto">
-     <div class="max-w-4xl mx-auto space-y-4"><button onclick="showAddNoticeModal()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg transition-all">
+     <div class="max-w-4xl mx-auto space-y-4"><button id="add-notice-btn" onclick="showAddNoticeModal()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg transition-all">
        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
        </svg><span class="font-semibold">Adicionar Novo Aviso</span> </button>
@@ -913,6 +911,10 @@
     </header>
     <main class="flex-1 p-4 overflow-auto">
      <div class="max-w-4xl mx-auto space-y-4">
+      <button onclick="showAddUserModal()" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg transition-all">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+       <span class="font-semibold">Adicionar Novo Usuário</span>
+      </button>
       <div id="users-container" class="space-y-3"></div>
      </div>
     </main>
@@ -1028,6 +1030,17 @@
       <h2 id="user-logs-title" class="text-xl font-bold text-white">Atividades</h2><button onclick="document.getElementById('user-logs-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-2xl">×</button>
      </div>
      <div id="user-logs-content" class="flex-1 overflow-auto space-y-3 pr-2"></div>
+    </div>
+   </div>
+   <div id="add-user-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-700">
+     <h2 class="text-xl font-bold text-white mb-4">Novo Usuário</h2>
+     <form onsubmit="handleAddUser(event)">
+      <input type="text" id="new-user-username" required class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white mb-4" placeholder="Nome de usuário">
+      <input type="password" id="new-user-password" required class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white mb-4" placeholder="Senha">
+      <div class="flex gap-3"><button type="button" onclick="hideAddUserModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 rounded-xl py-3 font-semibold">Cancelar</button> <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 font-semibold">Criar</button>
+      </div>
+     </form>
     </div>
    </div>
   </div>
@@ -1147,6 +1160,16 @@
         renderClients(allData);
         renderNotices(allData);
       }
+      
+      // Controle de visibilidade do botão de adicionar aviso
+      if (screenId === 'avisos-screen') {
+        const addNoticeBtn = document.getElementById('add-notice-btn');
+        if (addNoticeBtn) {
+          if (currentUser === 'admin') addNoticeBtn.classList.remove('hidden');
+          else addNoticeBtn.classList.add('hidden');
+        }
+        renderNotices(allData);
+      }
 
       if (screenId === 'users-screen') {
         renderUsers();
@@ -1183,6 +1206,8 @@
     function hideUploadVideoModal() { document.getElementById('upload-video-modal').classList.add('hidden'); }
     function showAddOrderModal() { document.getElementById('add-order-modal').classList.remove('hidden'); }
     function hideAddOrderModal() { document.getElementById('add-order-modal').classList.add('hidden'); }
+    function showAddUserModal() { document.getElementById('add-user-modal').classList.remove('hidden'); }
+    function hideAddUserModal() { document.getElementById('add-user-modal').classList.add('hidden'); }
 
     function showTaskModal(pieceId, taskField, taskName) {
       currentTaskData = { pieceId, taskField };
@@ -1929,6 +1954,7 @@
     // A função handleAddNotice foi corrigida e movida para o final do arquivo.
     async function handleAddNotice(event) {
       event.preventDefault();
+      if (currentUser !== 'admin') { showToast('Apenas administradores podem adicionar avisos.', 'error'); return; }
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
       const result = await getActiveSDK().create({
@@ -1981,6 +2007,26 @@
         currentRecordCount = allData.length;
       }
       else showToast('Erro ao adicionar.', 'error');
+    }
+
+    async function handleAddUser(event) {
+      event.preventDefault();
+      const username = document.getElementById('new-user-username').value.trim();
+      const password = document.getElementById('new-user-password').value.trim();
+
+      if (username.length < 3) { showToast('Usuário muito curto', 'error'); return; }
+      if (password.length < 4) { showToast('Senha muito curta', 'error'); return; }
+
+      const result = await window.serverSdk.register(username, password);
+      if (result.isOk) {
+        hideAddUserModal();
+        document.getElementById('new-user-username').value = '';
+        document.getElementById('new-user-password').value = '';
+        showToast('Usuário criado com sucesso!');
+        renderUsers();
+      } else {
+        showToast(result.error || 'Erro ao criar usuário', 'error');
+      }
     }
 
     const dataHandler = {
