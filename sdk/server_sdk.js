@@ -1,34 +1,58 @@
 // Server SDK - Gerencia conexão com servidor Node.js
-// Faz fallback para localStorage se servidor não estiver disponível
+// Modo Servidor: Não usa localStorage, salva tudo no backend
+
+console.log('🚀 Carregando server_sdk.js...');
 
 window.serverSdk = {
-  SERVER_URL: 'http://10.30.10.140:3000',
+  SERVER_URL: 'http://localhost:3000', // Valor padrão
   isConnected: false,
   storage: [],
 
   // Verificar se servidor está online
   async checkConnection() {
-    try {
-      const response = await fetch(`${this.SERVER_URL}/api/health`);
-      if (response.ok) {
-        this.isConnected = true;
-        console.log('✅ Conectado ao servidor JMAR');
-        return true;
-      }
-    } catch (err) {
-      this.isConnected = false;
-      console.warn('⚠️ Servidor JMAR não disponível, usando localStorage');
-      return false;
+    // Lista de URLs para tentar (Auto-Discovery)
+    const candidates = new Set();
+    
+    // 1. Se já estiver na porta 3000, usa a origem atual
+    if (window.location.port === '3000') candidates.add(window.location.origin);
+    
+    // 2. Tenta construir URL baseada no hostname atual
+    const protocol = window.location.protocol.startsWith('http') ? window.location.protocol : 'http:';
+    const host = window.location.hostname || 'localhost';
+    candidates.add(`${protocol}//${host}:3000`);
+    
+    // 3. Fallbacks garantidos (localhost e IP local)
+    candidates.add('http://localhost:3000');
+    candidates.add('http://127.0.0.1:3000');
+
+    console.log('🔌 Tentando conectar em:', [...candidates]);
+
+    for (const url of candidates) {
+      try {
+        const response = await fetch(`${url}/api/health`);
+        if (response.ok) {
+          this.SERVER_URL = url;
+          this.isConnected = true;
+          console.log('✅ Conectado com sucesso em:', this.SERVER_URL);
+          return true;
+        }
+      } catch (e) { /* Tenta a próxima */ }
     }
+
+    this.isConnected = false;
+    console.error('❌ Falha ao conectar. Verifique se rodou "node server.js"');
+    
+    // Alerta visual para facilitar o diagnóstico
+    const msg = '❌ Servidor desconectado! Abra o terminal e rode: node server.js';
+    if (window.showToast) window.showToast(msg, 'error');
+    else alert(msg);
+    
+    return false;
   },
 
   // Registrar novo usuário
   async register(username, password) {
-    if (!this.isConnected) {
-      console.log('📥 Usando fallback local para registro');
-      localStorage.setItem(`user_${username}`, password);
-      return { isOk: true, message: 'Cadastrado localmente' };
-    }
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado. Inicie o server.js' };
 
     try {
       const response = await fetch(`${this.SERVER_URL}/api/register`, {
@@ -36,26 +60,16 @@ window.serverSdk = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (err) {
       console.error('Erro ao registrar:', err);
-      // Fallback
-      localStorage.setItem(`user_${username}`, password);
-      return { isOk: true, message: 'Cadastrado localmente (fallback)' };
+      return { isOk: false, error: 'Erro de conexão' };
     }
   },
 
   // Fazer login
   async login(username, password) {
-    if (!this.isConnected) {
-      console.log('📥 Usando fallback local para login');
-      const savedPassword = localStorage.getItem(`user_${username}`);
-      if (savedPassword === password) {
-        return { isOk: true, message: 'Login local' };
-      }
-      return { isOk: false, error: 'Usuário ou senha incorretos (local)' };
-    }
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
 
     try {
       const response = await fetch(`${this.SERVER_URL}/api/login`, {
@@ -63,156 +77,108 @@ window.serverSdk = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (err) {
       console.error('Erro ao fazer login:', err);
-      // Fallback
-      const savedPassword = localStorage.getItem(`user_${username}`);
-      if (savedPassword === password) {
-        return { isOk: true, message: 'Login local (fallback)' };
-      }
       return { isOk: false, error: 'Erro ao conectar' };
     }
   },
 
   // Obter todos os dados
   async load() {
-    if (!this.isConnected) {
-      console.log('📥 Carregando dados do localStorage');
-      const jmarData = localStorage.getItem('jmar_data');
-      this.storage = jmarData ? JSON.parse(jmarData) : [];
-      return { isOk: true, data: this.storage };
-    }
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
 
     try {
       const response = await fetch(`${this.SERVER_URL}/api/data`);
       const result = await response.json();
       if (result.isOk) {
         this.storage = result.data;
-        // Salvar no localStorage também para backup
-        localStorage.setItem('jmar_data', JSON.stringify(this.storage));
-        console.log('✅ Dados sincronizados do servidor');
+        console.log('✅ Dados carregados do servidor:', this.storage.length);
         return { isOk: true, data: this.storage };
       }
     } catch (err) {
-      console.warn('Erro ao carregar do servidor, usando localStorage:', err);
-      const jmarData = localStorage.getItem('jmar_data');
-      this.storage = jmarData ? JSON.parse(jmarData) : [];
-      return { isOk: true, data: this.storage };
+      console.error('Erro ao carregar dados:', err);
+      return { isOk: false, error: 'Erro ao carregar dados' };
     }
+    return { isOk: false };
   },
 
   // Criar novo registro
   async create(record) {
-    // Sempre salva no localStorage primeiro
-    const newRecord = {
-      ...record,
-      __backendId: Date.now() + Math.random(),
-      id: Date.now() + Math.random()
-    };
-    this.storage.push(newRecord);
-    localStorage.setItem('jmar_data', JSON.stringify(this.storage));
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
 
-    // Tentar salvar no servidor
-    if (this.isConnected) {
-      try {
-        const response = await fetch(`${this.SERVER_URL}/api/data`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record)
-        });
-        const result = await response.json();
-        if (result.isOk) {
-          newRecord.__backendId = result.id;
-          localStorage.setItem('jmar_data', JSON.stringify(this.storage));
-          console.log('✅ Registro salvo no servidor');
-        }
-      } catch (err) {
-        console.warn('⚠️ Registro salvo localmente, falha ao salvar no servidor:', err);
+    try {
+      const response = await fetch(`${this.SERVER_URL}/api/data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      const result = await response.json();
+      if (result.isOk) {
+        // Atualiza memória local
+        const newRecord = { ...record, id: result.id, __backendId: result.id };
+        this.storage.push(newRecord);
+        return { isOk: true, id: result.id };
       }
-    } else {
-      console.log('📥 Registro salvo apenas localmente');
+    } catch (err) {
+      console.error('Erro ao criar registro:', err);
     }
-
-    return { isOk: true, id: newRecord.__backendId };
+    return { isOk: false, error: 'Erro ao salvar no servidor' };
   },
 
   // Atualizar registro
   async update(record) {
-    // Sempre atualiza no localStorage primeiro
-    const index = this.storage.findIndex(r => r.__backendId === record.__backendId);
-    if (index >= 0) {
-      this.storage[index] = record;
-      localStorage.setItem('jmar_data', JSON.stringify(this.storage));
-    }
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
 
-    // Tentar atualizar no servidor
-    if (this.isConnected && record.__backendId) {
-      try {
-        const response = await fetch(`${this.SERVER_URL}/api/data/${record.__backendId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record)
-        });
-        const result = await response.json();
-        if (result.isOk) {
-          console.log('✅ Registro atualizado no servidor');
-        }
-      } catch (err) {
-        console.warn('⚠️ Registro atualizado localmente, falha ao atualizar no servidor:', err);
+    try {
+      const response = await fetch(`${this.SERVER_URL}/api/data/${record.__backendId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      const result = await response.json();
+      if (result.isOk) {
+        const index = this.storage.findIndex(r => r.__backendId === record.__backendId);
+        if (index >= 0) this.storage[index] = record;
+        return { isOk: true };
       }
-    } else {
-      console.log('📥 Registro atualizado apenas localmente');
+    } catch (err) {
+      console.error('Erro ao atualizar:', err);
     }
-
-    return { isOk: true };
+    return { isOk: false, error: 'Erro ao atualizar no servidor' };
   },
 
   // Deletar registro
   async delete(idOrRecord) {
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
+    
     const id = idOrRecord.__backendId || idOrRecord.id || idOrRecord;
     
-    // Sempre deleta do localStorage primeiro
-    this.storage = this.storage.filter(r => r.__backendId !== id && r.id !== id);
-    localStorage.setItem('jmar_data', JSON.stringify(this.storage));
-
-    // Tentar deletar no servidor
-    if (this.isConnected && id) {
-      try {
-        const response = await fetch(`${this.SERVER_URL}/api/data/${id}`, {
-          method: 'DELETE'
-        });
-        const result = await response.json();
-        if (result.isOk) {
-          console.log('✅ Registro deletado no servidor');
-        }
-      } catch (err) {
-        console.warn('⚠️ Registro deletado localmente, falha ao deletar do servidor:', err);
+    try {
+      const response = await fetch(`${this.SERVER_URL}/api/data/${id}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+      if (result.isOk) {
+        this.storage = this.storage.filter(r => r.__backendId !== id && r.id !== id);
+        return { isOk: true };
       }
-    } else {
-      console.log('📥 Registro deletado apenas localmente');
+    } catch (err) {
+      console.error('Erro ao deletar:', err);
     }
-
-    return { isOk: true };
+    return { isOk: false, error: 'Erro ao deletar no servidor' };
   },
 
   // Init - conectar e carregar dados
   async init(handler) {
-    console.log('🔧 Iniciando Server SDK...');
-    
-    // Verificar conexão
+    console.log('🔧 Iniciando Server SDK (Modo Servidor Puro)...');
     await this.checkConnection();
-    
-    // Carregar dados
     const result = await this.load();
-    
     if (handler && handler.onDataChanged) {
       handler.onDataChanged(this.storage);
     }
-
     return result;
   }
 };
 
-console.log('📦 Server SDK carregado');
+console.log('📦 Server SDK carregado (Sem localStorage)');

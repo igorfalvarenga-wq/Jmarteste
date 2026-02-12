@@ -31,6 +31,12 @@ window.elementSdk = {
       element = document.getElementById(element);
     }
     if (element) element.textContent = text;
+  },
+
+  // Adicionado para compatibilidade com a chamada no index.html
+  init() {
+    console.log('✅ Element SDK (Mock) inicializado');
+    return { isOk: true };
   }
 };
 

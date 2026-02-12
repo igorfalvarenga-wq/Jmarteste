@@ -11,37 +11,7 @@
 
   <script>
     // Detectar qual SDK usar
-    const getActiveSDK = () => window.serverSdk || getActiveSDK();
-
-    // ImgBB Configuration
-    const IMGBB_API_KEY = 'dbf7a7cb4a1b8eb50350945ebe0e5545';
-    const IMGBB_API_URL = 'https://api.imgbb.com/1/upload';
-
-    async function uploadToImgBB(file) {
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('key', IMGBB_API_KEY);
-
-        const response = await fetch(IMGBB_API_URL, {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!response.ok) throw new Error('Erro na resposta do ImgBB');
-        
-        const data = await response.json();
-        if (data.success) {
-          console.log('✅ Imagem enviada para ImgBB:', data.data.display_url);
-          return data.data.display_url;
-        } else {
-          throw new Error(data.error?.message || 'Erro desconhecido');
-        }
-      } catch (err) {
-        console.error('❌ Erro ao enviar para ImgBB:', err);
-        return null;
-      }
-    }
+    const getActiveSDK = () => window.serverSdk || window.dataSdk;
 
     function renderNotices(data) {
       const container = document.getElementById('notices-container');
@@ -376,21 +346,11 @@
       const file = document.getElementById('project-file-input').files[0];
       if (!file) { showToast('Selecione um PDF', 'error'); return; }
 
-      // Armazena apenas na memória/localStorage, não no banco de dados
-      const fileKey = `project_${Date.now()}_${Math.random()}`;
       const reader = new FileReader();
       reader.onload = async (e) => {
-        // Salva o arquivo no localStorage
-        try {
-          localStorage.setItem(fileKey, e.target.result);
-        } catch (err) {
-          showToast('Arquivo muito grande para salvar. Máximo: 5MB', 'error');
-          return;
-        }
-
-        // Salva apenas metadados no banco
+        // Envia o arquivo diretamente para o servidor (Base64)
         const result = await getActiveSDK().create({
-          type: 'project', file_name: file.name, file_data: fileKey, created_at: new Date().toISOString(),
+          type: 'project', file_name: file.name, file_data: e.target.result, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '', piece_name: '', piece_type: '',
           caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', regulagem: false, regulagem_by: '', regulagem_date: '', 
           vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -419,48 +379,11 @@
       if (!title) { showToast('Digite um título para a foto', 'error'); return; }
       if (!responsible) { showToast('Digite seu nome', 'error'); return; }
       
-      // Tentar enviar para ImgBB primeiro
-      try {
-        showToast('📤 Enviando foto para o servidor...');
-        const imageUrl = await uploadToImgBB(file);
-        
-        if (imageUrl) {
-          // Sucesso no ImgBB - salvar com URL remota
-          const result = await getActiveSDK().create({
-            type: 'photo', file_data: imageUrl, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
-            client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
-          });
-          if (result.isOk) { 
-            hideUploadPhotoModal(); 
-            document.getElementById('photo-file-input').value = ''; 
-            document.getElementById('photo-title-input').value = ''; 
-            document.getElementById('photo-responsible-input').value = ''; 
-            document.getElementById('photo-description-input').value = ''; 
-            showToast('✅ Foto enviada com sucesso! Disponível em qualquer aparelho.'); 
-            allData = getActiveSDK().storage; 
-            renderPhotos(); 
-          }
-          else showToast('❌ Erro ao salvar registro.', 'error');
-          return;
-        }
-      } catch (err) {
-        console.error('Erro ao enviar para ImgBB:', err);
-      }
-
-      // Fallback: salvar localmente no localStorage
-      console.log('📥 Usando fallback local (ImgBB falhou ou indisponível)');
-      const fileKey = `photo_${Date.now()}_${Math.random()}`;
       const reader = new FileReader();
       reader.onload = async (e) => {
-        try {
-          localStorage.setItem(fileKey, e.target.result);
-        } catch (err) {
-          showToast('Arquivo muito grande. Máximo: 5MB', 'error');
-          return;
-        }
-
+        // Envia a foto diretamente para o servidor
         const result = await getActiveSDK().create({
-          type: 'photo', file_data: fileKey, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
+          type: 'photo', file_data: e.target.result, photo_title: title, photo_responsible: responsible, photo_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, file_name: file.name
         });
         if (result.isOk) { 
@@ -469,7 +392,7 @@
           document.getElementById('photo-title-input').value = ''; 
           document.getElementById('photo-responsible-input').value = ''; 
           document.getElementById('photo-description-input').value = ''; 
-          showToast('⚠️ Foto salva localmente. Acesso apenas neste aparelho.'); 
+          showToast('✅ Foto salva com sucesso!'); 
           allData = getActiveSDK().storage; 
           renderPhotos(); 
         }
@@ -491,18 +414,11 @@
       if (!responsible) { showToast('Digite seu nome', 'error'); return; }
       if (!desc) { showToast('Descreva o vídeo', 'error'); return; }
 
-      const fileKey = `video_${Date.now()}_${Math.random()}`;
       const reader = new FileReader();
       reader.onload = async (e) => {
-        try {
-          localStorage.setItem(fileKey, e.target.result);
-        } catch (err) {
-          showToast('Arquivo muito grande. Máximo: 5MB', 'error');
-          return;
-        }
-
+        // Envia o vídeo diretamente para o servidor
         const result = await getActiveSDK().create({
-          type: 'video', file_data: fileKey, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
+          type: 'video', file_data: e.target.result, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '',
           piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
           regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -1695,21 +1611,11 @@
       const file = document.getElementById('project-file-input').files[0];
       if (!file) { showToast('Selecione um PDF', 'error'); return; }
 
-      // Armazena apenas na memória/localStorage, não no banco de dados
-      const fileKey = `project_${Date.now()}_${Math.random()}`;
       const reader = new FileReader();
       reader.onload = async (e) => {
-        // Salva o arquivo no localStorage
-        try {
-          localStorage.setItem(fileKey, e.target.result);
-        } catch (err) {
-          showToast('Arquivo muito grande para salvar. Máximo: 5MB', 'error');
-          return;
-        }
-
-        // Salva apenas metadados no banco
+        // Envia o arquivo diretamente para o servidor (Base64)
         const result = await getActiveSDK().create({
-          type: 'project', file_name: file.name, file_data: fileKey, created_at: new Date().toISOString(),
+          type: 'project', file_name: file.name, file_data: e.target.result, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '', piece_name: '', piece_type: '',
           caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', regulagem: false, regulagem_by: '', regulagem_date: '', 
           vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
