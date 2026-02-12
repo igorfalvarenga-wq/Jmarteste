@@ -22,10 +22,13 @@ window.serverSdk = {
     // 1. Se já estiver na porta 3000, usa a origem atual
     if (window.location.port === '3000') candidates.add(window.location.origin);
     
-    // 2. Tenta construir URL baseada no hostname atual
+    // 2. Tenta construir URL baseada no hostname atual (Apenas se for localhost ou IP local)
     const protocol = window.location.protocol.startsWith('http') ? window.location.protocol : 'http:';
     const host = window.location.hostname || 'localhost';
-    candidates.add(`${protocol}//${host}:3000`);
+    // Evita criar URLs inválidas em produção (ex: github.io:3000)
+    if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.') || host.startsWith('10.')) {
+      candidates.add(`${protocol}//${host}:3000`);
+    }
     
     // 3. Fallbacks garantidos (localhost e IP local)
     candidates.add('http://localhost:3000');
