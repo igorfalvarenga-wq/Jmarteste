@@ -40,6 +40,7 @@ window.serverSdk = {
           this.SERVER_URL = url;
           this.isConnected = true;
           console.log('✅ Conectado com sucesso em:', this.SERVER_URL);
+          if (window.showToast) window.showToast(`Conectado ao servidor: ${url.includes('render') ? 'Nuvem ☁️ (Global)' : 'Local 🏠 (Dev)'}`);
           return true;
         }
       } catch (e) { /* Tenta a próxima */ }

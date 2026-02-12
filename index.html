@@ -6,13 +6,13 @@
   <title>JMAR - Gestão de Obras</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="./sdk/element_sdk.js"></script>
-  <script src="./sdk/data_sdk.js"></script>
+  <!-- <script src="./sdk/data_sdk.js"></script> -->
   <script src="./sdk/server_sdk.js"></script>
   <!-- <script src="./sdk/server_sdk.js"></script> -->
 
   <script>
     // Detectar qual SDK usar
-    const getActiveSDK = () => window.serverSdk || window.dataSdk;
+    const getActiveSDK = () => window.serverSdk; // Força uso do Servidor Global
 
     function renderNotices(data) {
       const container = document.getElementById('notices-container');
@@ -677,7 +677,7 @@
      </div>
     </header>
     <main class="flex-1 p-4 overflow-auto">
-     <div class="max-w-4xl mx-auto space-y-4"><button onclick="showAddClientModal()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg transition-all">
+     <div class="max-w-4xl mx-auto space-y-4"><button id="add-client-btn" onclick="showAddClientModal()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg transition-all">
        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
        </svg><span class="font-semibold">Adicionar Novo Cliente</span> </button>
@@ -1060,6 +1060,14 @@
       // Renderiza clientes e avisos quando a tela de obras é exibida
       if (screenId === 'obras-screen') {
         console.log('👷 Renderizando clientes e avisos...');
+        
+        // Controle de visibilidade do botão de adicionar cliente
+        const addClientBtn = document.getElementById('add-client-btn');
+        if (addClientBtn) {
+          if (currentUser === 'admin') addClientBtn.classList.remove('hidden');
+          else addClientBtn.classList.add('hidden');
+        }
+
         renderClients(allData);
         renderNotices(allData);
       }
@@ -1252,6 +1260,7 @@
     function renderClients(data) {
       const container = document.getElementById('clients-container');
       const clients = data.filter(item => item.type === 'client');
+      const isAdmin = currentUser === 'admin';
       
       if (clients.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400"><p>Nenhum cliente cadastrado</p></div>';
@@ -1265,9 +1274,9 @@
               <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold">${client.client_name.charAt(0)}</div>
               <div><h3 class="font-bold text-white text-lg">${client.client_name}</h3><p class="text-slate-500 text-sm">${new Date(client.created_at).toLocaleDateString('pt-BR')}</p></div>
             </div>
-            <button onclick="deleteClient('${client.id || client.__backendId}')" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/40 rounded-lg flex items-center justify-center">
+            ${isAdmin ? `<button onclick="deleteClient('${client.id || client.__backendId}')" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/40 rounded-lg flex items-center justify-center">
               <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
+            </button>` : ''}
           </div>
           <div class="grid grid-cols-4 gap-2">
             <button onclick="showClientDetail('${client.client_name}')" class="bg-blue-600 hover:bg-blue-500 rounded-lg py-2 px-3 text-xs font-medium">Projetos</button>
@@ -1540,17 +1549,18 @@
     }
 
     function deleteClient(id) { 
+      if (currentUser !== 'admin') { showToast('Apenas administradores podem excluir clientes.', 'error'); return; }
       console.log('🗑️ Tentando deletar cliente com ID:', id);
-      const r = allData.find(d => d.__backendId === id); 
+      const r = allData.find(d => String(d.__backendId) === String(id)); 
       console.log('📋 Registro encontrado:', r);
       if (r) deleteRecord(r); 
       else console.warn('⚠️ Registro não encontrado em allData');
     }
-    function deleteNotice(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deletePiece(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deletePhoto(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deleteVideo(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
-    function deleteOrder(id) { const r = allData.find(d => d.__backendId === id); if (r) deleteRecord(r); }
+    function deleteNotice(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deletePiece(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deletePhoto(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deleteVideo(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deleteOrder(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
 
     async function deleteRecord(record) {
       console.log('📤 Deletando registro:', record);
@@ -1584,11 +1594,24 @@
         }
         
         if (pdfData && pdfData.startsWith('data:')) {
-          const link = document.createElement('a');
-          link.href = pdfData;
-          link.download = project.file_name || 'projeto.pdf';
-          link.click();
-          showToast('✅ Download iniciado!');
+          // Converte Base64 para Blob para evitar limites de tamanho de URL no navegador
+          fetch(pdfData)
+            .then(res => res.blob())
+            .then(blob => {
+              const url = window.URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = project.file_name || 'projeto.pdf';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              window.URL.revokeObjectURL(url);
+              showToast('✅ Download iniciado!');
+            })
+            .catch(err => {
+              console.error('Erro ao baixar PDF:', err);
+              showToast('❌ Erro ao processar o arquivo.', 'error');
+            });
         } else {
           showToast('❌ Arquivo não encontrado', 'error');
         }
@@ -1611,6 +1634,12 @@
 
       const file = document.getElementById('project-file-input').files[0];
       if (!file) { showToast('Selecione um PDF', 'error'); return; }
+      
+      // Limite de segurança para garantir que o arquivo seja salvo e baixado corretamente
+      if (file.size > 15 * 1024 * 1024) { 
+        showToast('Arquivo muito grande! Máximo: 15MB', 'error'); 
+        return; 
+      }
 
       const reader = new FileReader();
       reader.onload = async (e) => {
@@ -1646,18 +1675,17 @@
       if (!responsible) { showToast('Digite seu nome', 'error'); return; }
       if (!desc) { showToast('Descreva o vídeo', 'error'); return; }
 
-      const fileKey = `video_${Date.now()}_${Math.random()}`;
+      // Limite de segurança (Base64 aumenta o tamanho em ~33%, então 30MB vira ~40MB)
+      if (file.size > 30 * 1024 * 1024) { 
+        showToast('Vídeo muito grande! Máximo: 30MB', 'error'); 
+        return; 
+      }
+
       const reader = new FileReader();
       reader.onload = async (e) => {
-        try {
-          localStorage.setItem(fileKey, e.target.result);
-        } catch (err) {
-          showToast('Arquivo muito grande. Máximo: 5MB', 'error');
-          return;
-        }
-
+        // Envia o vídeo diretamente para o servidor (agora global)
         const result = await getActiveSDK().create({
-          type: 'video', file_data: fileKey, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
+          type: 'video', file_data: e.target.result, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '',
           piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
           regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -1717,6 +1745,7 @@
 
     async function handleAddClient(event) {
       event.preventDefault();
+      if (currentUser !== 'admin') { showToast('Apenas administradores podem adicionar clientes.', 'error'); return; }
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
       const name = document.getElementById('client-name-input').value.trim();
@@ -1834,24 +1863,10 @@
         console.log('✅ allData sincronizado:', allData.length, 'registros');
         if (!result.isOk) showToast('Erro ao conectar ao servidor.', 'error');
       } 
-      // Fallback para dataSdk (localStorage)
-      else if (getActiveSDK()) {
-        console.log('📚 Usando SDK local...');
-        const result = await getActiveSDK().init(dataHandler);
-        console.log('✅ SDK init resultado:', result);
-        console.log('📊 Dados carregados:', getActiveSDK().storage);
-        // Sincronizar allData com os dados locais
-        allData = getActiveSDK().storage;
-        currentRecordCount = allData.length;
-        // Renderizar dados carregados
-        if (allData.length > 0) {
-          renderClients(allData);
-          renderNotices(allData);
-        }
-        console.log('✅ allData sincronizado:', allData.length, 'registros');
-        if (!result.isOk) showToast('Erro ao conectar.', 'error');
-      } else {
-        console.error('❌ Nenhum SDK encontrado!');
+      else {
+        const msg = '❌ ERRO CRÍTICO: O sistema não conseguiu carregar o Servidor. Verifique sua conexão.';
+        console.error(msg);
+        showToast(msg, 'error');
       }
     }
     

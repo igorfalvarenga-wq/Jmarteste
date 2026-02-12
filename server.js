@@ -15,6 +15,12 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb' }));
 app.use(express.static(__dirname));
 
+// Log de requisições para debug
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Inicializar banco SQLite
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
