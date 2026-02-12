@@ -1468,8 +1468,13 @@
         return `
         <div class="client-card bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-lg" style="animation-delay: ${index * 0.05}s">
           <div class="flex items-start gap-4">
-            <div class="w-24 h-24 bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-              <svg class="w-12 h-12 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <div class="w-24 h-24 bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+              ${video.video_thumbnail 
+                ? `<img src="${video.video_thumbnail}" class="w-full h-full object-cover" alt="Thumbnail">` 
+                : `<video src="${video.file_data}" class="w-full h-full object-cover" preload="metadata"></video>`}
+              <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+                <svg class="w-8 h-8 text-white/80" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
             </div>
             <div class="flex-1">
               <h3 class="font-bold text-white text-sm">${videoTitle}</h3>
@@ -1610,11 +1615,6 @@
       }
     }
 
-    function downloadProject(projectId) {
-      // Esta função foi corrigida e movida para o início do arquivo.
-      // Esta duplicata está sendo removida para evitar confusão.
-    }
-
     function showToast(message, type = 'success') {
       const toast = document.createElement('div');
       toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-lg z-50 ${type === 'error' ? 'bg-red-600' : 'bg-emerald-600'} text-white font-medium`;
@@ -1676,11 +1676,37 @@
         return; 
       }
 
+      // Gerar Thumbnail do vídeo para salvar no banco
+      let thumbnail = '';
+      try {
+        thumbnail = await new Promise((resolve) => {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          video.src = URL.createObjectURL(file);
+          video.muted = true;
+          video.playsInline = true;
+          video.currentTime = 1; // Captura frame no segundo 1
+          
+          video.onseeked = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 240;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL('image/jpeg', 0.6);
+            URL.revokeObjectURL(video.src);
+            resolve(data);
+          };
+          video.onerror = () => { URL.revokeObjectURL(video.src); resolve(''); };
+          setTimeout(() => resolve(''), 3000); // Timeout de segurança
+        });
+      } catch (e) { console.error('Erro thumbnail:', e); }
+
       const reader = new FileReader();
       reader.onload = async (e) => {
         // Envia o vídeo diretamente para o servidor (agora global)
         const result = await getActiveSDK().create({
-          type: 'video', file_data: e.target.result, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
+          type: 'video', file_data: e.target.result, video_thumbnail: thumbnail, file_name: file.name, video_name: videoName, video_responsible: responsible, video_description: desc, created_at: new Date().toISOString(),
           client_id: document.getElementById('detail-client-name').textContent, title: '', content: '', client_name: '',
           piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
           regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
