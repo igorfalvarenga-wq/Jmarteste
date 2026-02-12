@@ -91,6 +91,28 @@ window.serverSdk = {
     }
   },
 
+  // Obter lista de usuários
+  async getUsers() {
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
+    try {
+      const response = await fetch(`${this.SERVER_URL}/api/users`);
+      return await response.json();
+    } catch (err) {
+      return { isOk: false, error: 'Erro de conexão' };
+    }
+  },
+
+  // Deletar usuário
+  async deleteUser(id) {
+    if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };
+    try {
+      const response = await fetch(`${this.SERVER_URL}/api/users/${id}`, { method: 'DELETE' });
+      return await response.json();
+    } catch (err) {
+      return { isOk: false, error: 'Erro de conexão' };
+    }
+  },
+
   // Obter todos os dados
   async load() {
     if (!this.isConnected) return { isOk: false, error: 'Servidor desconectado' };

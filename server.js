@@ -110,6 +110,23 @@ app.post('/api/login', (req, res) => {
   );
 });
 
+// Listar todos os usuários (Novo)
+app.get('/api/users', (req, res) => {
+  db.all('SELECT id, username, created_at FROM users ORDER BY created_at DESC', (err, rows) => {
+    if (err) return res.json({ isOk: false, error: err.message });
+    res.json({ isOk: true, users: rows });
+  });
+});
+
+// Deletar usuário (Novo)
+app.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM users WHERE id = ?', [id], (err) => {
+    if (err) return res.json({ isOk: false, error: err.message });
+    res.json({ isOk: true });
+  });
+});
+
 // ===== ROTAS DE DADOS =====
 
 // Obter todos os dados
