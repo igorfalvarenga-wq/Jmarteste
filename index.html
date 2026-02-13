@@ -632,6 +632,7 @@
        <div class="mb-6"><label class="text-white font-semibold mb-2 block">Senha</label> <input type="password" id="login-password" required class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none" placeholder="Digite sua senha">
        </div><button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl py-3 font-semibold transition-all"> Entrar </button>
       </form>
+      
       <!-- Registro público desativado -->
      </div>
     </div>
@@ -1054,6 +1055,7 @@
     let users = JSON.parse(localStorage.getItem('jmar_users')) || {};
     let currentTaskData = { pieceId: null, taskField: null };
     let currentOSStatusData = { orderId: null, statusField: null };
+    let isPopState = false;
 
     function showLoginMode() {
       document.getElementById('register-screen').classList.add('hidden');
@@ -1075,6 +1077,7 @@
       
       if (result.isOk) {
         currentUser = username;
+        sessionStorage.setItem('jmar_current_user', username);
         document.getElementById('login-screen').classList.add('hidden');
         showScreen('home-screen');
         
@@ -1124,6 +1127,7 @@
 
     function logout() {
       currentUser = null;
+      sessionStorage.removeItem('jmar_current_user');
       document.getElementById('login-screen').classList.remove('hidden');
       showScreen('login-screen');
       document.getElementById('login-username').value = '';
@@ -1132,6 +1136,12 @@
 
     function showScreen(screenId) {
       console.log('🎬 Mudando para tela:', screenId);
+      
+      // Histórico de navegação para Mobile: Adiciona estado se não for raiz e não for ação de voltar
+      if (!isPopState && !['login-screen', 'home-screen'].includes(screenId)) {
+        history.pushState({ screenId }, '', '');
+      }
+
       ['home-screen', 'obras-screen', 'avisos-screen', 'client-detail-screen', 'checklist-screen', 'projects-screen', 'photos-screen', 'videos-screen', 'orders-screen', 'users-screen'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
       });
@@ -1271,7 +1281,7 @@
       const date = document.getElementById('task-date-input').value;
       const { pieceId, taskField } = currentTaskData;
 
-      const piece = allData.find(p => p.__backendId === pieceId);
+      const piece = allData.find(p => String(p.__backendId) === String(pieceId));
       if (piece) {
         const updatedPiece = {
           ...piece,
@@ -1298,7 +1308,7 @@
       const osNumber = document.getElementById('os-number-input').value.trim();
       const { orderId, statusField } = currentOSStatusData;
 
-      const order = allData.find(o => o.__backendId === orderId);
+      const order = allData.find(o => String(o.__backendId) === String(orderId));
       if (order) {
         const updates = {
           ...order,
@@ -2041,6 +2051,20 @@
       if (s) s.textContent = config.welcome_text;
     }
 
+    // Listener para o botão voltar do navegador/mobile
+    window.addEventListener('popstate', () => {
+      const visibleScreen = document.querySelector('div[id$="-screen"]:not(.hidden)');
+      if (visibleScreen) {
+        const backBtn = visibleScreen.querySelector('.back-btn');
+        if (backBtn) {
+          isPopState = true;
+          backBtn.click();
+          // Pequeno delay para garantir que o click processou antes de resetar a flag
+          setTimeout(() => { isPopState = false; }, 50);
+        }
+      }
+    });
+
     function mapToCapabilities(config) { return { recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined }; }
     function mapToEditPanelValues(config) { return new Map([['company_name', config.company_name], ['welcome_text', config.welcome_text]]); }
 
@@ -2066,6 +2090,17 @@
         }
         console.log('✅ allData sincronizado:', allData.length, 'registros');
         if (!result.isOk) showToast('Erro ao conectar ao servidor.', 'error');
+
+        // Restaura sessão se o usuário apenas atualizou a página
+        const savedUser = sessionStorage.getItem('jmar_current_user');
+        if (savedUser) {
+          currentUser = savedUser;
+          document.getElementById('login-screen').classList.add('hidden');
+          showScreen('home-screen');
+          const adminBtn = document.getElementById('admin-users-btn');
+          if (savedUser === 'admin') adminBtn.classList.remove('hidden');
+          else adminBtn.classList.add('hidden');
+        }
       } 
       else {
         const msg = '❌ ERRO CRÍTICO: O sistema não conseguiu carregar o Servidor. Verifique sua conexão.';
