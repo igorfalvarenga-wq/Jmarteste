@@ -1486,7 +1486,7 @@
       // Filtra logs explícitos do usuário
       const logs = allData.filter(item => item.type === 'log' && item.user === username);
       // Ordena por data (mais recente primeiro)
-      logs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      logs.sort((a, b) => b.created_at.localeCompare(a.created_at));
 
       if (logs.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400"><p>Nenhuma atividade registrada para este usuário.</p></div>';
@@ -1497,7 +1497,7 @@
         }).join('');
       }
       
-      document.getElementById('user-logs-modal').classList.remove('hidden');
+    document.getElementById('user-logs-modal').classList.remove('hidden');
     }
 
     function renderNotices(data) {
@@ -1581,6 +1581,7 @@
       const container = document.getElementById('projects-container');
       const clientName = document.getElementById('detail-client-name').textContent;
       const projects = allData.filter(item => item.type === 'project' && item.client_id === clientName);
+      const isAdmin = currentUser === 'admin';
       
       if (projects.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400"><p>Nenhum projeto enviado</p></div>';
@@ -1589,12 +1590,15 @@
 
       container.innerHTML = projects.map((proj, index) => `
         <div class="client-card bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-lg" style="animation-delay: ${index * 0.05}s">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
-              <div><h3 class="font-bold text-white">${proj.file_name}</h3><p class="text-slate-500 text-sm">${new Date(proj.created_at).toLocaleDateString('pt-BR')}</p></div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
+              <div class="truncate"><h3 class="font-bold text-white truncate" title="${proj.file_name}">${proj.file_name}</h3><p class="text-slate-500 text-sm">${new Date(proj.created_at).toLocaleDateString('pt-BR')}</p></div>
             </div>
-            <button onclick="downloadProject('${proj.__backendId}')" class="w-10 h-10 bg-blue-600 hover:bg-blue-500 rounded-lg flex items-center justify-center"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></button>
+            <div class="flex items-center gap-2 ml-4">
+              <button onclick="downloadProject('${proj.__backendId}')" class="w-10 h-10 bg-blue-600 hover:bg-blue-500 rounded-lg flex items-center justify-center"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></button>
+              ${isAdmin ? `<button onclick="deleteProject('${proj.__backendId}')" class="w-10 h-10 bg-red-600/30 hover:bg-red-600/50 rounded-lg flex items-center justify-center"><svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>` : ''}
+            </div>
           </div>
         </div>
       `).join('');
@@ -1685,6 +1689,7 @@
       const container = document.getElementById('orders-container');
       const clientName = document.getElementById('detail-client-name').textContent;
       const orders = allData.filter(item => item.type === 'order' && item.client_id === clientName);
+      const isAdmin = currentUser === 'admin';
       
       if (orders.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400"><p>Nenhuma ordem de serviço criada</p></div>';
@@ -1766,7 +1771,7 @@
                   </div>
                 ` : ''}
               </div>
-              <button onclick="deleteOrder('${order.__backendId}')" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/40 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+              ${isAdmin ? `<button onclick="deleteOrder('${order.__backendId}')" class="w-8 h-8 bg-red-500/20 hover:bg-red-500/40 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>` : ''}
             </div>
           </div>
         `;
@@ -1784,8 +1789,9 @@
     function deleteNotice(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
     function deletePiece(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
     function deletePhoto(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
-    function deleteVideo(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
-    function deleteOrder(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deleteProject(id) { if (currentUser !== 'admin') { showToast('Apenas administradores podem excluir projetos.', 'error'); return; } const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
+    function deleteVideo(id) { const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); } 
+    function deleteOrder(id) { if (currentUser !== 'admin') { showToast('Apenas administradores podem excluir ordens de serviço.', 'error'); return; } const r = allData.find(d => String(d.__backendId) === String(id)); if (r) deleteRecord(r); }
 
     async function deleteRecord(record) {
       console.log('📤 Deletando registro:', record);
@@ -1795,8 +1801,13 @@
         // Atualiza allData e a tela
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
-        renderClients(getActiveSDK().storage);
-        renderNotices(getActiveSDK().storage);
+        if (record.type === 'client') renderClients(allData);
+        if (record.type === 'notice') renderNotices(allData);
+        if (record.type === 'project') renderProjects();
+        if (record.type === 'photo') renderPhotos();
+        if (record.type === 'video') renderVideos();
+        if (record.type === 'order') renderOrders();
+        if (record.type === 'piece') renderPieces();
         showToast('Registro excluído!');
       }
       else {
@@ -1839,7 +1850,7 @@
           os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
           os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
         });
-        if (result.isOk) { hideUploadProjectModal(); document.getElementById('project-file-input').value = ''; showToast('✅ PDF enviado com sucesso!'); createLog('Enviou Projeto PDF', file.name); renderProjects(); }
+        if (result.isOk) { hideUploadProjectModal(); document.getElementById('project-file-input').value = ''; showToast('✅ PDF enviado com sucesso!'); createLog('Enviou Projeto PDF', file.name, document.getElementById('detail-client-name').textContent); renderProjects(); }
         else showToast('❌ Erro ao enviar PDF.', 'error');
       };
       reader.readAsDataURL(file);
@@ -1964,7 +1975,7 @@
         os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
         os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
       });
-      if (result.isOk) { hideAddOrderModal(); showToast('O.S. criada!'); createLog('Criou Ordem de Serviço', osTitle); renderOrders(); }
+      if (result.isOk) { hideAddOrderModal(); showToast('O.S. criada!'); createLog('Criou Ordem de Serviço', osTitle, document.getElementById('detail-client-name').textContent); renderOrders(); }
       else showToast('Erro ao criar.', 'error');
     }
 
