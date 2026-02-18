@@ -387,7 +387,7 @@
           os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
           os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
         });
-        if (result.isOk) { hideUploadProjectModal(); document.getElementById('project-file-input').value = ''; showToast('✅ PDF enviado com sucesso!'); renderProjects(); }
+        if (result.isOk) { hideUploadProjectModal(); document.getElementById('project-file-input').value = ''; showToast('✅ PDF enviado com sucesso!'); createLog('Enviou Projeto PDF', file.name, document.getElementById('detail-client-name').textContent); renderProjects(); }
         else showToast('❌ Erro ao enviar PDF.', 'error');
       };
       reader.readAsDataURL(file);
@@ -419,6 +419,7 @@
           document.getElementById('photo-responsible-input').value = ''; 
           document.getElementById('photo-description-input').value = ''; 
           showToast('✅ Foto salva com sucesso!'); 
+          createLog('Enviou Foto', title, document.getElementById('detail-client-name').textContent);
           allData = getActiveSDK().storage; 
           renderPhotos(); 
         }
@@ -467,6 +468,7 @@
           document.getElementById('video-responsible-input').value = ''; 
           document.getElementById('video-description-input').value = ''; 
           showToast('✅ Vídeo enviado com sucesso!'); 
+          createLog('Enviou Vídeo', videoName);
           renderVideos(); 
         }
         else showToast('❌ Erro ao enviar vídeo.', 'error');
@@ -492,8 +494,9 @@
         });
       }
 
+      const osTitle = document.getElementById('os-title-input').value.trim();
       const result = await getActiveSDK().create({
-        type: 'order', os_title: document.getElementById('os-title-input').value.trim(),
+        type: 'order', os_title: osTitle,
         os_date: document.getElementById('os-date-input').value, os_solicitante: document.getElementById('os-solicitante-input').value.trim(),
         os_description: document.getElementById('os-description-input').value.trim(), created_at: new Date().toISOString(),
         os_initial_video: initialVideoData, os_initial_video_name: videoFile ? videoFile.name : '', os_number: '', os_all_videos: '',
@@ -505,7 +508,7 @@
         os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
         os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
       });
-      if (result.isOk) { hideAddOrderModal(); showToast('O.S. criada!'); renderOrders(); }
+      if (result.isOk) { hideAddOrderModal(); showToast('O.S. criada!'); createLog('Criou Ordem de Serviço', osTitle, document.getElementById('detail-client-name').textContent); renderOrders(); }
       else showToast('Erro ao criar.', 'error');
     }
 
@@ -528,6 +531,7 @@
         hideAddClientModal(); 
         document.getElementById('client-name-input').value = '';
         showToast('Cliente adicionado!');
+        createLog('Adicionou Cliente', name);
         // Atualiza a tela com os novos dados
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
@@ -539,9 +543,10 @@
     async function handleAddNotice(event) {
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
-
+      
+      const title = document.getElementById('notice-title-input').value.trim();
       const result = await getActiveSDK().create({
-        type: 'notice', title: document.getElementById('notice-title-input').value.trim(),
+        type: 'notice', title: title,
         content: document.getElementById('notice-content-input').value.trim(), created_at: new Date().toISOString(),
         client_name: '', piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '',
         regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -556,6 +561,7 @@
         document.getElementById('notice-title-input').value = '';
         document.getElementById('notice-content-input').value = '';
         showToast('Aviso adicionado!');
+        createLog('Adicionou Aviso', title);
         // Atualiza a tela com os novos dados
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
@@ -568,8 +574,9 @@
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
+      const pieceName = document.getElementById('piece-name-input').value.trim();
       const result = await getActiveSDK().create({
-        type: 'piece', piece_name: document.getElementById('piece-name-input').value.trim(),
+        type: 'piece', piece_name: pieceName,
         piece_type: document.getElementById('piece-type-select').value, created_at: new Date().toISOString(),
         client_id: currentClientForChecklist, caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
         regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -584,6 +591,7 @@
         document.getElementById('piece-name-input').value = '';
         document.getElementById('piece-type-select').value = '';
         showToast('Peça adicionada!');
+        createLog('Adicionou Peça', pieceName, currentClientForChecklist);
         // Atualiza a tela com os novos dados
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
@@ -1220,7 +1228,7 @@
     function hideAddUserModal() { document.getElementById('add-user-modal').classList.add('hidden'); }
 
     function showTaskModal(pieceId, taskField, taskName) {
-      currentTaskData = { pieceId, taskField };
+      currentTaskData = { pieceId, taskField, taskName };
       document.getElementById('task-modal-title').textContent = `Completar: ${taskName}`;
       document.getElementById('task-person-input').value = '';
       document.getElementById('task-date-input').value = new Date().toISOString().split('T')[0];
@@ -1230,7 +1238,7 @@
     function hideTaskModal() { document.getElementById('task-modal').classList.add('hidden'); }
 
     function showOSStatusModal(orderId, statusField, statusName) {
-      currentOSStatusData = { orderId, statusField };
+      currentOSStatusData = { orderId, statusField, statusName };
       document.getElementById('os-status-title').textContent = statusName;
       document.getElementById('os-status-person').value = '';
       document.getElementById('os-status-date').value = new Date().toISOString().split('T')[0];
@@ -1279,7 +1287,7 @@
       event.preventDefault();
       const person = document.getElementById('task-person-input').value.trim();
       const date = document.getElementById('task-date-input').value;
-      const { pieceId, taskField } = currentTaskData;
+      const { pieceId, taskField, taskName } = currentTaskData;
 
       const piece = allData.find(p => String(p.__backendId) === String(pieceId));
       if (piece) {
@@ -1293,6 +1301,7 @@
         if (result.isOk) {
           hideTaskModal();
           showToast(`Etapa "${taskField}" concluída por ${person}!`);
+          createLog('Completou Etapa Checklist', `${taskName} em ${piece.piece_name}`, piece.client_id);
           renderPieces();
         } else {
           showToast('Erro ao atualizar peça.', 'error');
@@ -1306,7 +1315,7 @@
       const date = document.getElementById('os-status-date').value;
       const videoFile = document.getElementById('os-status-video').files[0];
       const osNumber = document.getElementById('os-number-input').value.trim();
-      const { orderId, statusField } = currentOSStatusData;
+      const { orderId, statusField, statusName } = currentOSStatusData;
 
       const order = allData.find(o => String(o.__backendId) === String(orderId));
       if (order) {
@@ -1343,6 +1352,7 @@
             if (result.isOk) {
               hideOSStatusModal();
               showToast('Status atualizado com sucesso!');
+              createLog('Atualizou Status OS', `${statusName} em ${order.os_title}`, order.client_id);
               renderOrders();
             } else {
               showToast('Erro ao atualizar.', 'error');
@@ -1354,6 +1364,7 @@
           if (result.isOk) {
             hideOSStatusModal();
             showToast('Status atualizado com sucesso!');
+            createLog('Atualizou Status OS', `${statusName} em ${order.os_title}`, order.client_id);
             renderOrders();
           } else {
             showToast('Erro ao atualizar.', 'error');
@@ -1443,28 +1454,39 @@
       }
     }
 
+    async function createLog(action, details, clientName = '') {
+      if (!currentUser) return;
+      try {
+        await getActiveSDK().create({
+          type: 'log',
+          user: currentUser,
+          action: action,
+          details: details,
+          client_name: clientName,
+          created_at: new Date().toISOString(),
+          client_id: '', title: '', content: '', piece_name: '', piece_type: '',
+          caixilho: false, vidro: false, regulagem: false, vedacao: false, arremate: false,
+          os_archived: false, os_produced: false, os_material_separated: false, os_completed: false, os_finalized: false
+        });
+        allData = getActiveSDK().storage;
+      } catch (e) { console.error('Erro ao criar log:', e); }
+    }
+
     function showUserLogs(username) {
       const container = document.getElementById('user-logs-content');
       document.getElementById('user-logs-title').textContent = `Atividades de: ${username}`;
       
-      // Filtra atividades onde o nome do usuário aparece nos dados
-      const logs = allData.filter(item => {
-        const str = JSON.stringify(item).toLowerCase();
-        return str.includes(username.toLowerCase());
-      });
+      // Filtra logs explícitos do usuário
+      const logs = allData.filter(item => item.type === 'log' && item.user === username);
+      // Ordena por data (mais recente primeiro)
+      logs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       if (logs.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400"><p>Nenhuma atividade registrada para este usuário.</p></div>';
       } else {
         container.innerHTML = logs.map(log => {
-          let desc = 'Atividade desconhecida';
-          if (log.type === 'client') desc = `Cliente criado/modificado: ${log.client_name}`;
-          else if (log.type === 'photo') desc = `Foto enviada: ${log.photo_title || 'Sem título'}`;
-          else if (log.type === 'video') desc = `Vídeo enviado: ${log.video_name || 'Sem título'}`;
-          else if (log.type === 'order') desc = `O.S. criada/modificada: ${log.os_title}`;
-          else if (log.type === 'piece') desc = `Peça criada/modificada: ${log.piece_name}`;
-          
-          return `<div class="bg-slate-700/50 p-3 rounded-lg border border-slate-600"><p class="text-white text-sm font-medium">${desc}</p><p class="text-slate-400 text-xs mt-1">Registro ID: ${log.id || log.__backendId} • Data: ${new Date(log.created_at || log.updated_at || Date.now()).toLocaleDateString('pt-BR')}</p></div>`;
+          const clientInfo = log.client_name ? `<p class="text-yellow-400 text-xs mt-1">Obra: ${log.client_name}</p>` : '';
+          return `<div class="bg-slate-700/50 p-3 rounded-lg border border-slate-600"><p class="text-white text-sm font-medium">${log.action}</p><p class="text-slate-300 text-xs">${log.details}</p>${clientInfo}<p class="text-slate-400 text-xs mt-1">Data: ${new Date(log.created_at).toLocaleString('pt-BR')}</p></div>`;
         }).join('');
       }
       
@@ -1810,13 +1832,15 @@
           os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
           os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
         });
-        if (result.isOk) { hideUploadProjectModal(); document.getElementById('project-file-input').value = ''; showToast('✅ PDF enviado com sucesso!'); renderProjects(); }
+        if (result.isOk) { hideUploadProjectModal(); document.getElementById('project-file-input').value = ''; showToast('✅ PDF enviado com sucesso!'); createLog('Enviou Projeto PDF', file.name); renderProjects(); }
         else showToast('❌ Erro ao enviar PDF.', 'error');
       };
       reader.readAsDataURL(file);
     }
 
     // Função handleUploadPhoto removida (duplicada - versão atualizada com ImgBB está no início)
+
+    // A função handleUploadVideo foi corrigida e movida para o final do arquivo.
 
     async function handleUploadVideo(event) {
       event.preventDefault();
@@ -1890,13 +1914,15 @@
           document.getElementById('video-name-input').value = ''; 
           document.getElementById('video-responsible-input').value = ''; 
           document.getElementById('video-description-input').value = ''; 
-          showToast('✅ Vídeo enviado com sucesso!'); 
+          showToast('✅ Vídeo enviado com sucesso!'); createLog('Enviou Vídeo', videoName, document.getElementById('detail-client-name').textContent);
           renderVideos(); 
         }
         else showToast('❌ Erro ao enviar vídeo.', 'error');
       };
       reader.readAsDataURL(file);
     }
+
+    // A função handleAddOrder foi corrigida e movida para o final do arquivo.
 
     // A função handleAddOrder foi corrigida e movida para o final do arquivo.
     async function handleAddOrder(event) {
@@ -1917,8 +1943,9 @@
         });
       }
 
+      const osTitle = document.getElementById('os-title-input').value.trim();
       const result = await getActiveSDK().create({
-        type: 'order', os_title: document.getElementById('os-title-input').value.trim(),
+        type: 'order', os_title: osTitle,
         os_date: document.getElementById('os-date-input').value, os_solicitante: document.getElementById('os-solicitante-input').value.trim(),
         os_description: document.getElementById('os-description-input').value.trim(), created_at: new Date().toISOString(),
         os_initial_video: initialVideoData, os_initial_video_name: videoFile ? videoFile.name : '', os_number: '', os_all_videos: '',
@@ -1930,7 +1957,7 @@
         os_material_separated: false, os_material_by: '', os_material_date: '', os_completed: false, os_completed_by: '', os_completed_date: '',
         os_finalized: false, os_finalized_by: '', os_finalized_date: '', os_finalized_video: '', os_finalized_video_name: ''
       });
-      if (result.isOk) { hideAddOrderModal(); showToast('O.S. criada!'); renderOrders(); }
+      if (result.isOk) { hideAddOrderModal(); showToast('O.S. criada!'); createLog('Criou Ordem de Serviço', osTitle); renderOrders(); }
       else showToast('Erro ao criar.', 'error');
     }
 
@@ -1953,6 +1980,7 @@
         hideAddClientModal(); 
         document.getElementById('client-name-input').value = '';
         showToast('Cliente adicionado!');
+        createLog('Adicionou Cliente', name);
         // Atualiza a tela com os novos dados
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
@@ -1967,8 +1995,9 @@
       if (currentUser !== 'admin') { showToast('Apenas administradores podem adicionar avisos.', 'error'); return; }
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
+      const title = document.getElementById('notice-title-input').value.trim();
       const result = await getActiveSDK().create({
-        type: 'notice', title: document.getElementById('notice-title-input').value.trim(),
+        type: 'notice', title: title,
         content: document.getElementById('notice-content-input').value.trim(), created_at: new Date().toISOString(),
         client_name: '', piece_name: '', piece_type: '', caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '',
         regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -1983,6 +2012,7 @@
         document.getElementById('notice-title-input').value = '';
         document.getElementById('notice-content-input').value = '';
         showToast('Aviso adicionado!');
+        createLog('Adicionou Aviso', title);
         // Atualiza a tela com os novos dados
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
@@ -1996,8 +2026,9 @@
       event.preventDefault();
       if (currentRecordCount >= 999) { showToast('Limite atingido.', 'error'); return; }
 
+      const pieceName = document.getElementById('piece-name-input').value.trim();
       const result = await getActiveSDK().create({
-        type: 'piece', piece_name: document.getElementById('piece-name-input').value.trim(),
+        type: 'piece', piece_name: pieceName,
         piece_type: document.getElementById('piece-type-select').value, created_at: new Date().toISOString(),
         client_id: currentClientForChecklist, caixilho: false, caixilho_by: '', caixilho_date: '', vidro: false, vidro_by: '', vidro_date: '', 
         regulagem: false, regulagem_by: '', regulagem_date: '', vedacao: false, vedacao_by: '', vedacao_date: '', arremate: false, arremate_by: '', arremate_date: '',
@@ -2012,6 +2043,7 @@
         document.getElementById('piece-name-input').value = '';
         document.getElementById('piece-type-select').value = '';
         showToast('Peça adicionada!');
+        createLog('Adicionou Peça', pieceName);
         // Atualiza a tela com os novos dados
         allData = getActiveSDK().storage;
         currentRecordCount = allData.length;
