@@ -225,7 +225,7 @@
         const videosArray = order.os_all_videos ? JSON.parse(order.os_all_videos) : [];
         
         const statusArray = [
-          { name: '1️��� Arquivado', completed: order.os_archived, field: 'os_archived', by: order.os_archived_by, date: order.os_archived_date, hasVideo: false, number: order.os_number || '' },
+          { name: '1️⃣ Arquivado', completed: order.os_archived, field: 'os_archived', by: order.os_archived_by, date: order.os_archived_date, hasVideo: false, number: order.os_number || '' },
           { name: '2️⃣ Produzido', completed: order.os_produced, field: 'os_produced', by: order.os_produced_by, date: order.os_produced_date, hasVideo: false },
           { name: '3️⃣ Material Separado', completed: order.os_material_separated, field: 'os_material_separated', by: order.os_material_by, date: order.os_material_date, hasVideo: false },
           { name: '4️⃣ Obra Finalizada', completed: order.os_finalized, field: 'os_finalized', by: order.os_finalized_by, date: order.os_finalized_date, hasVideo: !!order.os_finalized_video }
@@ -279,7 +279,7 @@
                 ${videosArray.length > 0 ? `
                   <div class="bg-red-900/30 border border-red-600 rounded-lg p-3 mb-3">
                     <p class="text-white font-semibold mb-2 text-sm flex items-center gap-2">
-                      ��� Vídeos da Obra
+                      📹 Vídeos da Obra
                     </p>
                     <div class="space-y-2">
                       ${videosArray.map((vid, i) => `
@@ -1321,10 +1321,17 @@
       if (order) {
         const updates = {
           ...order,
-          [statusField]: true,
-          [`${statusField}_by`]: person,
-          [`${statusField}_date`]: date
+          [statusField]: true
         };
+
+        // Corrige a inconsistência no nome do campo para 'material separado'
+        if (statusField === 'os_material_separated') {
+          updates.os_material_by = person;
+          updates.os_material_date = date;
+        } else {
+          updates[`${statusField}_by`] = person;
+          updates[`${statusField}_date`] = date;
+        }
 
         // Se for arquivado, salva o número
         if (statusField === 'os_archived' && osNumber) {
@@ -1689,7 +1696,7 @@
         const videosArray = order.os_all_videos ? JSON.parse(order.os_all_videos) : [];
         
         const statusArray = [
-          { name: '1️��� Arquivado', completed: order.os_archived, field: 'os_archived', by: order.os_archived_by, date: order.os_archived_date, hasVideo: false, number: order.os_number || '' },
+          { name: '1️⃣ Arquivado', completed: order.os_archived, field: 'os_archived', by: order.os_archived_by, date: order.os_archived_date, hasVideo: false, number: order.os_number || '' },
           { name: '2️⃣ Produzido', completed: order.os_produced, field: 'os_produced', by: order.os_produced_by, date: order.os_produced_date, hasVideo: false },
           { name: '3️⃣ Material Separado', completed: order.os_material_separated, field: 'os_material_separated', by: order.os_material_by, date: order.os_material_date, hasVideo: false },
           { name: '4️⃣ Obra Finalizada', completed: order.os_finalized, field: 'os_finalized', by: order.os_finalized_by, date: order.os_finalized_date, hasVideo: !!order.os_finalized_video }
@@ -1730,8 +1737,8 @@
                         </div>
                         ${status.completed ? `
                           <div class="text-right">
-                            <p class="text-slate-400 text-xs">${status.by}</p>
-                            <p class="text-slate-400 text-xs">${new Date(status.date).toLocaleDateString('pt-BR')}</p>
+                            <p class="text-slate-400 text-xs"><span class="text-slate-500">Por:</span> ${status.by || '?'}</p>
+                            <p class="text-slate-400 text-xs"><span class="text-slate-500">Em:</span> ${status.date ? new Date(status.date).toLocaleDateString('pt-BR') : ''}</p>
                             ${status.field === 'os_archived' && status.number ? `<p class="text-yellow-400 text-xs font-bold">OS: ${status.number}</p>` : ''}
                             ${status.hasVideo ? `<button onclick="showVideoPlayerModal('${order.os_finalized_video}', 'Vídeo da Conclusão')" class="text-blue-400 hover:text-blue-300 text-xs font-medium mt-1">▶ Ver Vídeo</button>` : ''}
                           </div>
@@ -1743,7 +1750,7 @@
                 ${videosArray.length > 0 ? `
                   <div class="bg-red-900/30 border border-red-600 rounded-lg p-3 mb-3">
                     <p class="text-white font-semibold mb-2 text-sm flex items-center gap-2">
-                      ��� Vídeos da Obra
+                      📹 Vídeos da Obra
                     </p>
                     <div class="space-y-2">
                       ${videosArray.map((vid, i) => `
